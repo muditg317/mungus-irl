@@ -29,7 +29,7 @@ export const registerUserAction = dispatch => (userData, history, authSuccessRed
       history.push(authSuccessRedirect || '/dashboard');
     }) // re-direct to login on successful register
     .catch(err =>
-      console.log(err) ||
+      console.log("auth register failed!\n", err) ||
       dispatch({
         type: GET_ERRORS,
         payload: err.response.data
@@ -92,53 +92,4 @@ export const clearErrorsAction = dispatch => () => {
     type: GET_ERRORS,
     payload: {}
   });
-}
-
-
-export const verifyUserAction = dispatch => (hash, force) => {
-  console.log("attempt verify");
-  if (hash) {
-    axios
-      .post(`/api/users/verify/${hash}`)
-      .then(response => {
-        // Save to localStorage
-        // Set token to localStorage
-        const { token } = response.data;
-        localStorage.setItem('jwtToken', token);
-        // Set token to Auth header
-        setAuthToken(token);
-        // Decode token to get user data
-        const decoded = jwt_decode(token);
-        // Set current user
-        setCurrentUserAction(dispatch)(decoded);
-      })
-      .catch(err => {
-        console.log(err.response.data);
-      });
-  } else {
-    axios
-      .post(`/api/users/verify?force=${force}`)
-      .then(response => {
-        // console.log("verification request success", response.data);
-        if (response.data.success) {
-          // console.log('already verified');
-          const { token } = response.data;
-          localStorage.setItem('jwtToken', token);
-          // Set token to Auth header
-          setAuthToken(token);
-          // Decode token to get user data
-          const decoded = jwt_decode(token);
-          // Set current user
-          return setCurrentUserAction(dispatch)(decoded);
-        }
-        dispatch({
-          type: VERIFYING,
-          payload: response.data.pendingVerification
-        });
-      })
-      .catch(err => {
-        // console.log(err);
-        console.log(err.response.data);
-      })
-  }
 };

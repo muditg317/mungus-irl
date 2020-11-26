@@ -11,8 +11,7 @@ const User = require('../models/User');
 
 const authPayload = user => ({
   id: user.id,
-  name: `${user.firstName} ${user.lastName}`,
-  verified: user.verified,
+  username: user.username
 });
 
 module.exports = {
@@ -23,10 +22,10 @@ module.exports = {
     if (!isValid) {
       return response.status(400).json(errors ? {...errors} : {});
     }
-    promiseTimeout(User.findByEmail(request.body.email))
+    promiseTimeout(User.findByUsername(request.body.username))
       .then(users => {
         if (users.length) {
-          return response.status(400).json({ email: 'Email already exists' });
+          return response.status(400).json({ username: 'Username already exists' });
         }
 
         const newUser = new User(fieldsFromBody(request.body, User.schema.requiredPaths()));
@@ -69,7 +68,7 @@ module.exports = {
         });
       })
       .catch(error => {
-        console.log($1rror);
+        console.log(error);
         response.status(503);
       });
   },
@@ -80,17 +79,17 @@ module.exports = {
     if (!isValid) {
       return response.status(400).json(errors ? {...errors} : {});
     }
-    const email = request.body.email;
+    const username = request.body.username;
     const password = request.body.password;
 
-    promiseTimeout(User.findOneByEmail(email))
+    promiseTimeout(User.findOneByUsername(username))
       .then(user => {
         if (!user) {
-          return response.status(404).json({ email: 'Email not found' });
+          return response.status(404).json({ username: 'Username not found' });
         }
         // console.log("logging in", user);
         // if (!user.verified) {
-        //   return response.status(400).json({ verification: 'This account isn\'t verified! Please check your email.' });
+        //   return response.status(400).json({ verification: 'This account isn\'t verified! Please check your username.' });
         // }
         // Check password
         bcrypt.compare(password, user.password).then(isMatch => {
@@ -116,12 +115,12 @@ module.exports = {
           );
         })
         .catch(error => {
-          console.log($1rror);
+          console.log(error);
           response.status(503);
         });
       })
       .catch(error => {
-        console.log($1rror);
+        console.log(error);
         response.status(503);
       });
   },

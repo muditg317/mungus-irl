@@ -6,15 +6,14 @@ import { store } from 'state-management';
 const PrivateRoute = ({ children, ...rest }) => {
   const { state } = useContext(store);
   const location = useLocation();
-  let { authenticated, verified } = checkValidAuthToken();
+  let { authenticated } = checkValidAuthToken();
   authenticated |= state.auth.isAuthenticated;
-  verified |= state.auth.user.verified;
   return (
     <Route {...rest}>
-      { authenticated && verified ?
+      { authenticated ?
         children
       : <Redirect to={{
-        pathname: `/${authenticated ? 'verify' : ''}`,
+        pathname: '/',
         privateAccessAttemptFrom: location.pathname
       }} />
       }

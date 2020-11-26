@@ -14,9 +14,6 @@ import AuthModal from 'components/authModal';
 import Landing from 'components/landing';
 import About from 'components/about';
 
-import HiddenRoute from 'components/hidden-route';
-import VerifyPage from 'components/verify-page';
-
 import PrivateRoute from 'components/private-route';
 import Dashboard from 'components/dashboard';
 
@@ -41,13 +38,11 @@ export default function App(props) {
 
   useEffect(() => {
     // Check for token to keep user logged in
-    const { token, decoded, authenticated, verified } = checkValidAuthToken();
+    const { token, decoded, authenticated } = checkValidAuthToken();
     if (token && decoded) {
       if (authenticated) {
-        if (verified || true) {
-          setAuthToken(token);
-          setCurrentUser(decoded);
-        }
+        setAuthToken(token);
+        setCurrentUser(decoded);
       } else {
         logoutUser();  // Logout user
         setShowAuthModal(true);
@@ -60,23 +55,18 @@ export default function App(props) {
       case "SIGN OUT":
         logoutUser(RESTRICTED_PAGES.includes(history.location.pathname) ? history : undefined);
         break;
-      case "VERIFY":
-        history.push('/verify');
-        break;
       case "LOG IN":
         setShowAuthModal(true);
         break;
       default:
-        if (state.auth.user.verified) {
+        if (state.auth.isAuthenticated) {
           logoutUser(RESTRICTED_PAGES.includes(history.location.pathname) ? history : undefined);
-        } else if (state.auth.isAuthenticated) {
-          history.push('/verify');
         } else {
           setShowAuthModal(true);
         }
     }
     event.preventDefault();
-  }, [state.auth.isAuthenticated, state.auth.user.verified, history, logoutUser]);
+  }, [state.auth.isAuthenticated, history, logoutUser]);
 
   const openAuthModal = useCallback((isRegistered, redirectPath) => {
     setRegistered(isRegistered);
@@ -93,7 +83,7 @@ export default function App(props) {
   return (
     <div className='h-full flex flex-col' id='app'>
       <Helmet>
-        <title>GT FLOw Control</title>
+        <title>Mungus IRL</title>
       </Helmet>
       <AppHeader {...{onAuthButtonPress}} />
       <main className='flex-grow'>
@@ -104,9 +94,6 @@ export default function App(props) {
           <Route exact path={['/', '/landing']}>
             <Landing {...{openAuthModal}} />
           </Route>
-          <HiddenRoute path='/verify'>
-            <VerifyPage />
-          </HiddenRoute>
           <PrivateRoute path='/dashboard'>
             <Dashboard />
           </PrivateRoute>

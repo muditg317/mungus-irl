@@ -5,7 +5,7 @@ const handleChange = setter => event => {
   setter(event.target.value);
 }
 
-export default function LoginForm({ className, email, setEmail, password, setPassword, errors, doRegister, onExit, submitAuthRequest}) {
+export default function LoginForm({ className, username, setUsername, password, setPassword, errors, doRegister, onExit, submitAuthRequest}) {
 
   const handleEnterPressed = useCallback(event => {
     if (event.key === 'Enter') {
@@ -18,16 +18,13 @@ export default function LoginForm({ className, email, setEmail, password, setPas
     <>
       <div className={`container bg-white shadow-md rounded rounded-t-none px-8 pt-6 pb-8 mb-4 ${className}`}>
         <div className="form" role="form">
-          { errors.verification !== undefined && <div className="flex flex-row items-center">
-            <p className="form-error">{errors.verification}</p><Link to="/verify" onClick={onExit} className="bg-purple-500 text-white font-bold py-2 px-4 rounded">Verify</Link>
-          </div> }
           { errors.globalError && <p className="form-error">{errors.globalError}</p> }
           <div className="form-field">
             <label className="field-label">
-              Email
+              Username
             </label>
-            <input onChange={handleChange(setEmail)} onKeyPress={handleEnterPressed} value={email} className={`field-input field-input-text ${errors.email ? "error" : ""}`} id="email" type="text" placeholder="Email" />
-            { errors.email && <p className="field-error">{errors.email}</p> }
+            <input onChange={handleChange(setUsername)} onKeyPress={handleEnterPressed} value={username} className={`field-input field-input-text ${errors.username ? "error" : ""}`} id="username" type="text" placeholder="Username" />
+            { errors.username && <p className="field-error">{errors.username}</p> }
           </div>
           <div className="form-field">
             <label className="field-label">

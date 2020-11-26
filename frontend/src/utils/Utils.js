@@ -93,7 +93,7 @@ export function checkValidAuthToken() {
     const token = localStorage.jwtToken;  // Set auth token header auth
     const decoded = jwt_decode(token);  // Decode token and get user info and exp
     const currentTime = Date.now() / 1000; // to get in milliseconds
-    return { token, decoded, authenticated: decoded.exp > currentTime, verified: decoded.verfied };
+    return { token, decoded, authenticated: decoded.exp > currentTime };
   }
   return false;
 }

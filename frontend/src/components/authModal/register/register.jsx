@@ -4,7 +4,7 @@ const handleChange = setter => event => {
   setter(event.target.value);
 }
 
-export default function RegisterForm({ className, email, setEmail, firstName, setFirstName, lastName, setLastName, flo, setFlo, password, setPassword, confirmPassword, setConfirmPassword, errors, doLogin, submitAuthRequest}) {
+export default function RegisterForm({ className, username, setUsername, password, setPassword, confirmPassword, setConfirmPassword, errors, doLogin, submitAuthRequest}) {
 
   const handleEnterPressed = useCallback(event => {
     if (event.key === 'Enter') {
@@ -18,40 +18,12 @@ export default function RegisterForm({ className, email, setEmail, firstName, se
       <div className={`container bg-white shadow-md rounded rounded-t-none px-8 pt-6 pb-8 mb-4 ${className}`}>
         <div className='form' role='form'>
           { errors.globalError && <p className="form-error">{errors.globalError}</p> }
-          <div className='form-row'>
-            <div className='form-field'>
-              <label className='field-label'>
-                First Name
-              </label>
-              <input onChange={handleChange(setFirstName)} onKeyPress={handleEnterPressed} value={firstName} className={`field-input field-input-text ${errors.firstName ? 'error' : ''}`} id='firstName' type='text' placeholder='First Name' />
-              { errors.firstName && <p className='field-error'>{errors.firstName}</p> }
-            </div>
-            <div className='form-field'>
-              <label className='field-label'>
-                Last Name
-              </label>
-              <input onChange={handleChange(setLastName)} onKeyPress={handleEnterPressed} value={lastName} className={`field-input field-input-text ${errors.lastName ? 'error' : ''}`} id='lastName' type='text' placeholder='Last Name' />
-              { errors.lastName && <p className='field-error'>{errors.lastName}</p> }
-            </div>
-          </div>
           <div className='form-field'>
             <label className='field-label'>
-              Email
+              Username
             </label>
-            <input onChange={handleChange(setEmail)} onKeyPress={handleEnterPressed} value={email} className={`field-input field-input-text ${errors.email ? 'error' : ''}`} id='email' type='text' placeholder='Email' />
-            { errors.email && <p className='field-error'>{errors.email}</p> }
-          </div>
-          <div className='form-field'>
-            <label className='field-label'>
-              FLO
-            </label>
-            <select onChange={handleChange(setFlo)} value={flo || ''} className={`field-input field-input-text ${errors.flo ? 'error' : ''}`} id='flo'>
-              <option value='' hidden> select an option </option>
-              <option value='EL'>Emerging Leaders</option>
-              <option value='FAB'>First-Year Activities Board</option>
-              <option value='FLI'>First-Year Leadership Initiative</option>
-            </select>
-            { errors.flo && <p className='field-error'>{errors.flo}</p> }
+            <input onChange={handleChange(setUsername)} onKeyPress={handleEnterPressed} value={username} className={`field-input field-input-text ${errors.username ? 'error' : ''}`} id='username' type='text' placeholder='Username' />
+            { errors.username && <p className='field-error'>{errors.username}</p> }
           </div>
           <div className='form-field'>
             <label className='field-label'>

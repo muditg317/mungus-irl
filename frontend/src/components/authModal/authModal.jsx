@@ -15,10 +15,7 @@ const AuthModal = ({ shown, registered: isRegistered, onExit, authSuccessRedirec
   const clearErrors = useCallback((...args) => clearErrorsAction(dispatch)(...args), [dispatch]);
   const { errors } = state;
   const [ registered, setRegistered ] = useState(true);
-  const [ firstName, setFirstName ] = useState('');
-  const [ lastName, setLastName ] = useState('');
-  const [ email, setEmail ] = useState(state.user.email || '');
-  const [ flo, setFlo ] = useState('');
+  const [ username, setUsername ] = useState(state.user.username || '');
   const [ password, setPassword ] = useState('');
   const [ confirmPassword, setConfirmPassword ] = useState('');
   const modalOverlayRef = useRef(null);
@@ -31,10 +28,7 @@ const AuthModal = ({ shown, registered: isRegistered, onExit, authSuccessRedirec
   }, [isRegistered]);
 
   const clearFields = useCallback(() => {
-    setFirstName('');
-    setLastName('');
-    setEmail('');
-    setFlo('');
+    setUsername('');
     setPassword('');
     setConfirmPassword('');
   }, []);
@@ -48,19 +42,13 @@ const AuthModal = ({ shown, registered: isRegistered, onExit, authSuccessRedirec
 
   useEffect(() => {
     if (shown && state.auth.isAuthenticated) {
-      if (state.auth.user.verified) {
-        if (registered) {
-          const loginRedirect = authSuccessRedirect || (location.pathname === '/' && '/dashboard');
-          loginRedirect && history.push(loginRedirect);
-        } else {
-          history.push(authSuccessRedirect || '/dashboard');
-        }
-        onExit();
+      if (registered) {
+        const loginRedirect = authSuccessRedirect || (location.pathname === '/' && '/dashboard');
+        loginRedirect && history.push(loginRedirect);
       } else {
-        if (!registered) {
-          onExit();
-        }
+        history.push(authSuccessRedirect || '/dashboard');
       }
+      onExit();
     }
   }, [shown, history, state, onExit, authSuccessRedirect, registered, location.pathname]);
 
@@ -73,11 +61,6 @@ const AuthModal = ({ shown, registered: isRegistered, onExit, authSuccessRedirec
 
   // console.log("autoRedirrect?", authSuccessRedirect, "prev errors", errors);
   const checkGlobalErrors = () => {
-    if (shown && state.auth.isAuthenticated) {
-      isEmpty(errors) && (state.auth.user.verified || (errors.verification = 'This account isn\'t verified! Please check your email.'));
-    } else {
-      delete errors.verification;
-    }
     if (authSuccessRedirect) {
       isEmpty(errors) && (errors.globalError = `You will be redirected to ${authSuccessRedirect.slice(1)} once authenticated.`);
     } else {
@@ -118,17 +101,17 @@ const AuthModal = ({ shown, registered: isRegistered, onExit, authSuccessRedirec
 
   const sendLoginRequest = useCallback(() => {
     const userData = {
-      email, password,
+      username, password,
     };
     loginUser(userData, history, authSuccessRedirect);
-  }, [history, authSuccessRedirect, loginUser, email, password]);
+  }, [history, authSuccessRedirect, loginUser, username, password]);
 
   const sendRegisterRequest = useCallback(() => {
     const newUser = {
-      firstName, lastName, email, flo, password, confirmPassword
+      username, password, confirmPassword
     };
     registerUser(newUser, history, authSuccessRedirect);
-  }, [registerUser, history, authSuccessRedirect, firstName, lastName, email, flo, password, confirmPassword]);
+  }, [registerUser, history, authSuccessRedirect, username, password, confirmPassword]);
 
   const submitAuthRequest = useCallback(() => {
     registered ? sendLoginRequest() : sendRegisterRequest();
@@ -162,8 +145,8 @@ const AuthModal = ({ shown, registered: isRegistered, onExit, authSuccessRedirec
               </li>
             </ul>
             { registered ?
-              <LoginForm {...{submitAuthRequest, doRegister, onExit, email, setEmail, password, setPassword, errors}} className={`${registered ? 'block' : 'hidden'}`} />
-            : <RegisterForm {...{submitAuthRequest, doLogin, onExit, email, setEmail, password, setPassword, errors, firstName, setFirstName, lastName, setLastName, flo, setFlo, confirmPassword, setConfirmPassword}} className={`${!registered ? 'block' : 'hidden'}`} />
+              <LoginForm {...{submitAuthRequest, doRegister, onExit, username, setUsername, password, setPassword, errors}} className={`${registered ? 'block' : 'hidden'}`} />
+            : <RegisterForm {...{submitAuthRequest, doLogin, onExit, username, setUsername, password, setPassword, errors, confirmPassword, setConfirmPassword}} className={`${!registered ? 'block' : 'hidden'}`} />
             }
           </div>
         </div>

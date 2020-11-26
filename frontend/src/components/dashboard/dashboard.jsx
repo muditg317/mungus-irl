@@ -12,7 +12,7 @@ const Dashboard = () => {
   console.log(state);
   useEffect(() => {
     setUserData(state.user);
-  }, [state]);
+  }, [state, state.user]);
 
   const onLogoutClick = useCallback(event => {
     event.preventDefault();
@@ -23,7 +23,7 @@ const Dashboard = () => {
 
   return (
     <div style={{ height: "75vh" }} className="container valign-wrapper">
-      Welcome {"{name}"} how are you! how's your family doing? {"<open groupme>"}
+      Welcome {`${userData.username}`} how are you! how's your family doing? {"<open groupme>"}
       <div className="row">
         <div className="col s12 center-align">
           <h4>
