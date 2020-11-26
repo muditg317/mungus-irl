@@ -1,0 +1,20 @@
+.tabs {
+  @apply flex border-b;
+
+  &>.tab {
+    @apply mr-1 cursor-pointer;
+    &.active {
+      @apply -mb-px;
+      &>.tab-title {
+        @apply border-l border-t border-r rounded-t text-blue-700 font-semibold;
+      }
+    }
+
+    &>.tab-title {
+      @apply bg-white inline-block py-2 px-4 text-blue-500 font-semibold;
+      &:hover {
+        @apply text-blue-800;
+      }
+    }
+  }
+}

@@ -1,0 +1,70 @@
+.form {
+
+  &>.form-error {
+    @apply text-red-500 text-sm italic mb-2;
+  }
+
+  &>.form-row {
+    @apply flex flex-wrap -mx-3;
+
+    @screen md {
+      @apply mb-6;
+    }
+
+    &>.form-field {
+      @apply w-full px-3 mb-6;
+
+      @screen md {
+        @apply w-1/2 mb-0;
+      }
+    }
+  }
+
+  &>.form-field {
+    @apply mb-4;
+    &:last-child {
+      @apply mb-6;
+    }
+  }
+  & .form-field {
+    &>.field-label {
+      @apply block text-gray-700 text-sm font-bold mb-2;
+    }
+
+    &>.field-input {
+      @apply shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight;
+      &:focus {
+        @apply outline-none shadow-outline;
+      }
+      &.error {
+        @apply border-red-500 mb-3;
+      }
+    }
+
+    &>.field-error {
+      @apply text-red-500 text-xs italic;
+    }
+
+  }
+
+  &>.form-footer {
+    @apply flex items-center justify-between;
+
+    &>.form-submit {
+      @apply bg-blue-500 text-white font-bold py-2 px-4 rounded;
+      &:hover {
+        @apply bg-blue-700;
+      }
+      &:focus {
+        @apply outline-none shadow-outline;
+      }
+    }
+
+    &>.form-unapplicable-text {
+      @apply inline-block align-baseline font-bold text-sm text-blue-500;
+      &:hover {
+        @apply text-blue-800;
+      }
+    }
+  }
+}
