@@ -1,11 +1,23 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback, useContext } from 'react';
 import { useHistory, useLocation } from "react-router-dom";
+import socketIOClient from 'socket.io-client';
+
+import { addAvailableGameAction, setAvailableGamesAction } from 'state-management/actions/lobbyActions';
+import { store } from 'state-management';
 
 import banner from 'assets/images/mungus-banner.jpg';
 
-export default function Landing({ openAuthModal }) {
+
+
+export default function Lobby({ openAuthModal }) {
+  const { state, dispatch } = useContext(store);
+  const addAvailableGame = useCallback((...args) => addAvailableGameAction(dispatch)(...args), [dispatch]);
+  const setAvailableGames = useCallback((...args) => setAvailableGamesAction(dispatch)(...args), [dispatch]);
+  const [ hosts, setHosts ] = useState([]);
+  const [ socket, setSocket ] = useState();
   const location = useLocation();
   const history = useHistory();
+
   useEffect(() => {
     const { privateAccessAttemptFrom } = location;
     if (privateAccessAttemptFrom) {
@@ -13,6 +25,31 @@ export default function Landing({ openAuthModal }) {
       history.push(location.pathname);
     }
   }, [openAuthModal, location, history]);
+
+  //TODO: Make lobby a higher order component of type public page (move the above effect into there)
+
+  useEffect(() => {
+    setHosts(state.lobby.hosts);
+  }, [state.lobby.hosts]);
+
+  useEffect(() => {
+    // console.log(require('util').inspect(socketIOClient, { depth: null }));
+    const socketIO = socketIOClient('/lobby');
+    socketIO.on("connect", data => {
+      console.log("connect to socket", data);
+    });
+    socketIO.on("hosts", data => {
+      setAvailableGames(data.hosts);
+    });
+    socketIO.on('newHost', data => {
+      console.log(data);
+      addAvailableGame(data.hostname);
+    });
+    // console.log(socket);
+    // socketIO.emit("test", {yeet:"yeet"});
+    setSocket(socketIO);
+    return () => socketIO.disconnect();
+  }, [setAvailableGames, addAvailableGame]);
 
   //use dispatch action stuff to load list of games
 
@@ -29,7 +66,13 @@ export default function Landing({ openAuthModal }) {
       </div>
       <div className="w-full flex-grow bg-gray-800 text-white">
         <div className="container mx-auto p-5">
-          <h2 className="text-xl font-bold mb-2">Manage your FLO!</h2>
+          <div className="flex flex-row items-center justify-between mb-2 h-12">
+            <h2 className="text-xl font-bold mb-2">Join a game!</h2>
+            { state.auth.isAuthenticated
+              ? <button onClick={() => socket.emit("test", "createGame")} className="bg-transparent hover:bg-purple-500 text-purple-500 font-semibold hover:text-white py-2 px-4 border border-purple-500 hover:border-transparent rounded">Host a game!</button>
+              : <button onClick={() => openAuthModal(false)} className="bg-transparent hover:bg-purple-500 text-purple-500 font-semibold hover:text-white py-2 px-4 border border-purple-500 hover:border-transparent rounded">Sign up to host a game</button>
+            }
+          </div>
           <p className="mb-1">Use this platform for your FLO to easily manage various things including:</p>
           <ul className="mb-4 ml-3">
             <li>Buddy dates</li>

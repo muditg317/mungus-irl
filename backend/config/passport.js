@@ -22,4 +22,15 @@ module.exports = passport => {
         .catch(err => console.log(err));
     })
   );
+  
+  passport.serializeUser(function (user, done) {
+    done(null, user.id);
+  });
+
+  passport.deserializeUser(function (user, done) {
+    //If using Mongoose with MongoDB; if other you will need JS specific to that schema.
+    User.findById(user.id, function (err, user) {
+      done(err, user);
+    });
+  });
 };

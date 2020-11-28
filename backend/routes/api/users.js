@@ -1,21 +1,23 @@
-const router = require('express').Router()
+const usersRouter = require('express').Router()
 const authController = require('../../controllers/authController');
 const usersController = require('../../controllers/usersController');
 
-router
+usersRouter
   .route('/info/:id')
   .get(usersController.findById);
 
-router
+usersRouter
   .route('/register')
   .post(authController.register);
 
-router
+usersRouter
   .route('/login')
   .post(authController.login);
 
-router
+usersRouter
   .route('/:username')
   .get(usersController.findByUsername);
 
-module.exports = router;
+module.exports = (router, app, server, io) => {
+  router.use('/users', usersRouter);
+};

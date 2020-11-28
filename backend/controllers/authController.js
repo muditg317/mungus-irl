@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { SECRET_OR_KEY } = require('../config/env');
+const { SECRET_OR_KEY, MONGOOSE_READ_TIMEOUT, MONGOOSE_WRITE_TIMEOUT } = require('../config/env');
 const { promiseTimeout, fieldsFromBody } = require('../utils');
 
 // Load input validation
@@ -15,64 +15,48 @@ const authPayload = user => ({
 });
 
 module.exports = {
-  register: (request, response) => {
+  register: async (request, response) => {
     // Form validation
     const { errors, isValid } = validateRegisterInput(request.body);
     // Check validation
     if (!isValid) {
       return response.status(400).json(errors ? {...errors} : {});
     }
-    promiseTimeout(User.findByUsername(request.body.username))
-      .then(users => {
-        if (users.length) {
-          return response.status(400).json({ username: 'Username already exists' });
-        }
+    try {
+      const users = await User.findByUsername(request.body.username).maxTime(MONGOOSE_READ_TIMEOUT);
+      if (users.length) {
+        return response.status(400).json({ username: 'Username already exists' });
+      }
 
-        const newUser = new User(fieldsFromBody(request.body, User.schema.requiredPaths()));
-        // Hash password before saving in database
-        bcrypt.genSalt(10, (err, salt) => {
-          bcrypt.hash(newUser.password, salt, (err, hash) => {
-            if (err) throw err;
-            newUser.password = hash;
-            console.log('gen new user', newUser);
-            promiseTimeout(newUser.save(), 50000)
-              .then(user => {
-                // if (!user.verified) {
-                //   return response.status(400).json({ verification: false });
-                // }
-                console.log('registered', user);
-                // Create JWT Payload
-                const payload = authPayload(user);
-                // Sign token
-                jwt.sign(
-                  payload,
-                  SECRET_OR_KEY,
-                  {
-                    expiresIn: 31556926 // 1 year in seconds
-                  },
-                  (err, token) => {
-                    console.log('auth token', token);
-                    response.json({
-                      success: true,
-                      token: 'Bearer ' + token
-                    });
-                  }
-                );
-              })
-              .catch(error => {
-                console.log(error);
-                response.status(503);
-              });
-            console.log('saved');
+      const newUser = new User(fieldsFromBody(request.body, User.schema.requiredPaths()));
+
+      const salt = await bcrypt.genSalt(10)
+      const hash = await bcrypt.hash(newUser.password, salt);
+      newUser.password = hash;
+      console.log('gen new user', newUser);
+
+      const savedUser = await newUser.save({wtimeout: MONGOOSE_WRITE_TIMEOUT});
+      console.log('registered', savedUser);
+
+      const payload = authPayload(savedUser);
+
+      jwt.sign(payload, SECRET_OR_KEY, { expiresIn: '1y' }, (err, token) => {
+          if (err) throw err;
+          console.log('auth token', token);
+          response.json({
+            success: true,
+            token: 'Bearer ' + token
           });
-        });
-      })
-      .catch(error => {
-        console.log(error);
-        response.status(503);
-      });
+        }
+      );
+    } catch (error) {
+      console.error(error);
+      return response.status(503);
+    } finally {
+
+    }
   },
-  login: (request, response) => {
+  login: async (request, response) => {
     // Form validation
     const { errors, isValid } = validateLoginInput(request.body);
     // Check validation
@@ -82,46 +66,35 @@ module.exports = {
     const username = request.body.username;
     const password = request.body.password;
 
-    promiseTimeout(User.findOneByUsername(username))
-      .then(user => {
-        if (!user) {
-          return response.status(404).json({ username: 'Username not found' });
+    try {
+      const user = await User.findOneByUsername(username).maxTime(MONGOOSE_READ_TIMEOUT);
+      if (!user) {
+        return response.status(404).json({ username: 'Username not found' });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return response.status(400).json({ password: 'Password incorrect' });
+      }
+      console.log('logged in', user);
+
+      const payload = authPayload(user);
+
+      jwt.sign(payload, SECRET_OR_KEY, { expiresIn: '1y' }, (err, token) => {
+          if (err) throw err;
+          console.log('auth token', token);
+          response.json({
+            success: true,
+            token: 'Bearer ' + token
+          });
         }
-        // console.log("logging in", user);
-        // if (!user.verified) {
-        //   return response.status(400).json({ verification: 'This account isn\'t verified! Please check your username.' });
-        // }
-        // Check password
-        bcrypt.compare(password, user.password).then(isMatch => {
-          if (!isMatch) {
-            return response.status(400).json({ password: 'Password incorrect' });
-          }
-          // User matched
-          // Create JWT Payload
-          const payload = authPayload(user);
-          // Sign token
-          jwt.sign(
-            payload,
-            SECRET_OR_KEY,
-            {
-              expiresIn: 31556926 // 1 year in seconds
-            },
-            (err, token) => {
-              response.json({
-                success: true,
-                token: 'Bearer ' + token
-              });
-            }
-          );
-        })
-        .catch(error => {
-          console.log(error);
-          response.status(503);
-        });
-      })
-      .catch(error => {
-        console.log(error);
-        response.status(503);
-      });
+      );
+
+    } catch (error) {
+        console.error(error);
+        return response.status(503);
+    } finally {
+
+    }
   },
 };

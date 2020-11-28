@@ -10,6 +10,11 @@ const userSchema = new Schema({
     type: String,
     required: true
   },
+  hosting: {
+    type: Boolean,
+    required: true,
+    default: false
+  }
 }, {
   timestamps: true
 });

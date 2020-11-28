@@ -1,6 +1,6 @@
 import { GET_ERRORS } from '../actions/types';
 export const initialState = {};
-export default function(errorState = initialState, action) {
+const errorReducer = (errorState = initialState, action) => {
   switch (action.type) {
     case GET_ERRORS:
       return {
@@ -9,4 +9,6 @@ export default function(errorState = initialState, action) {
     default:
       return errorState;
   }
-}
+};
+
+export default errorReducer;

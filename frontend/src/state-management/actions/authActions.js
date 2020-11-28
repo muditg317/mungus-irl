@@ -4,8 +4,7 @@ import { setAuthToken } from 'utils';
 import {
   GET_ERRORS,
   SET_CURRENT_USER,
-  USER_LOADING,
-  VERIFYING
+  USER_LOADING
 } from './types';
 import { setLoggedInUserDataAction } from './userActions';
 

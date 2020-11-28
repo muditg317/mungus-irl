@@ -12,4 +12,8 @@ if (!('error' in result)) {
   _.each(process.env, (value, key) => { envs[key] = value; });
 }
 
+for (let key in envs) {
+  try { envs[key] = JSON.parse(envs[key]); } catch (e) { }
+}
+
 module.exports = envs;

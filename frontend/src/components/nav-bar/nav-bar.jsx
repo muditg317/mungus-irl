@@ -11,10 +11,9 @@ export default function NavBar({ onAuthButtonPress }) {
   const [ responsive, setResponsive ] = useState(false);
   const isAuthenticated = useMemo(() => state.auth.isAuthenticated, [state.auth.isAuthenticated]);
   const navBarRef = useRef(null);
-  const location = useLocation();
+  // const location = useLocation();
 
   useEffect(() => {
-    console.log(responsive);
     const documentClickHandler = event => {
       if (responsive && navBarRef.current && event.target !== navBarRef.current) {
         setResponsive(false);
