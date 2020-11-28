@@ -64,9 +64,9 @@ export default function About() {
     }
 
     btnScanQR.onclick = () => {
-      video.setAttribute('autoplay', '');
-      video.setAttribute('muted', '');
-      video.setAttribute('playsinline', true);
+      // video.setAttribute('autoplay', '');
+      // video.setAttribute('muted', '');
+      // video.setAttribute('playsinline', true);
       log.log(navigator);
       log.log(navigator.mediaDevices);
       log.log(navigator.mediaDevices.getUserMedia);
@@ -77,7 +77,7 @@ export default function About() {
           qrResult.hidden = true;
           btnScanQR.hidden = true;
           canvasElement.hidden = false;
-          // video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
+          video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
           video.srcObject = stream;
           video.play();
           tick();

@@ -1,3 +1,4 @@
+/* eslint-disable */
 /* Packed with Google Closure
 *
 * Ported to JavaScript by Lazar Laszlo 2011
