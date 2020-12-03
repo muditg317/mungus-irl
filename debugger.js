@@ -1,6 +1,7 @@
 const repl = require('repl');
 const socketIOClient = require('./frontend/node_modules/socket.io-client');
 
+const server = process.argv.length === 3 ? `http://localhost:8080/debug` : `http://mungus.mudit.tech/debug`;
 const SECRET = process.argv[process.argv.length - 1];
 
 const replServer = repl.start({ prompt: '> ' });

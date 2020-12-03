@@ -1,9 +1,9 @@
 const Player = require('./Player');
 const { globals, randStr } = require('../../utils');
-
+const { NODE_ENV } = require('../../config/env');
 
 module.exports = class Game {
-  static RESPONSELESS_PING_THRESHOLD = 10; // TODO: 20
+  static RESPONSELESS_PING_THRESHOLD = NODE_ENV === 'development' ? 10 : 20; // TODO: 20
 
   constructor({ hostname, tasks, sockets, started, players, passcode, gameToken } = {}) {
     this.hostname = hostname;
@@ -69,15 +69,18 @@ module.exports = class Game {
   registerPlayerSocket(username, socket) {
     const player = this.players.find(_player => _player.username === username);
     if (!player) {
-      console.log("player register fail -- player not found");
+      console.log("player register fail -- username not found");
+      console.log("\t", username, "|", player.username);
       return false;
     }
     if (player.socketAddress !== socket.request.connection.remoteAddress) {
       console.log("player register fail -- socket remote address invalid");
+      console.log("\t", player.socketAddress, "|", socket.request.connection.remoteAddress);
       return false;
     }
     if (player.active || player.wasActive) {
       console.log("player register fail -- player already active");
+      console.log("\t", player.active, "|", player.wasActive);
       return false;
     }
     console.log("player register success -- \n\t", username, "|", player.username, "\n\t", player.socketAddress, "|", socket.request.connection.remoteAddress, "\n\t", player.active, "|", player.wasActive);

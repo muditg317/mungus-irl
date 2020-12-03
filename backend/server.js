@@ -12,7 +12,7 @@ const { globals } = require('./utils');
 
 const app = express();
 const serverCertOpts = {};
-if (NODE_ENV == 'development') {
+if (NODE_ENV === 'development') {
   // serverCertOpts.key = fs.readFileSync(path.resolve('../ssl-certs/key.pem')).toString();
   // serverCertOpts.cert = fs.readFileSync(path.resolve('../ssl-certs/cert.pem')).toString();
   // serverCertOpts.requestCert = false;
@@ -55,6 +55,12 @@ globals.games = {};
 globals.rootIO = io;
 require('./sockets')(io);
 
+if (NODE_ENV !== 'development') {
+  setInterval(() => {
+    console.log("GAME INFO:");
+    console.log(require('util').inspect(globals.games, { depth: 4 }));
+  }, 30000);
+}
 
 /* SHOULD BE FOR HOSTS ONLY
 io.use(wrap(sessionMiddleware));
