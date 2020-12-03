@@ -5,7 +5,7 @@ const server = process.argv.length === 3 ? `http://localhost:8080/debug` : `http
 const SECRET = process.argv[process.argv.length - 1];
 
 const replServer = repl.start({ prompt: '> ' });
-const socket = socketIOClient(`http://localhost:8080/debug`, { forceNew: true, query: { SECRET } });
+const socket = socketIOClient(server, { forceNew: true, query: { SECRET } });
 
 socket.on("connect", data => {
     replServer.clearBufferedCommand();

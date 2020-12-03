@@ -1,12 +1,12 @@
 const lobbyController = require('../controllers/lobbyController');
 const User = require('../models/User');
 const Task = require('../models/Task');
-const { globals, verifyJWTtoken } = require('../utils');
+const { globals, verifyJWTtoken, socketRemoteIP } = require('../utils');
 const { MONGOOSE_READ_TIMEOUT } = require('../config/env');
 
 module.exports = (rootIO, lobbyIO) => {
   lobbyIO.use((socket, next) => {
-    console.log(`SOCKET-LOBBY: ${socket.id}|${socket.request.connection.remoteAddress}`);
+    console.log(`SOCKET-LOBBY: ${socket.id}|${socketRemoteIP(socket)}`);
     // console.log("socket.request.connection",require('util').inspect(socket.request.connection, { depth: null }));
     // console.log("socket.conn.transport",require('util').inspect(socket.conn.transport, { depth: null }));
 

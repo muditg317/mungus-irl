@@ -1,9 +1,9 @@
-const { globals } = require('../../utils');
+const { globals, socketRemoteIP } = require('../../utils');
 const User = require('../../models/User');
 
 module.exports = (rootIO, gameRooms) => {
   gameRooms.use((socket, next) => {
-    console.log(`SOCKET-GAME-${socket.nsp.name}: ${socket.id}|${socket.request.connection.remoteAddress}`);
+    console.log(`SOCKET-GAME-${socket.nsp.name}: ${socket.id}|${socketRemoteIP(socket)}`);
     const hostname = socket.nsp.hostname || socket.nsp.name.substring(6);
     if (!globals.games[hostname]) {
       const err = new Error("Invalid game host!");
@@ -32,11 +32,11 @@ module.exports = (rootIO, gameRooms) => {
       err.data = { content: "Illegal request to join" };
       return next(err);
     }
-    console.log(`SOCKET-GAME-${socket.nsp.hostname}|SUCCESS: ${socket.id}|${socket.request.connection.remoteAddress}`);
+    console.log(`SOCKET-GAME-${socket.nsp.hostname}|SUCCESS: ${socket.id}|${socketRemoteIP(socket)}`);
     next();
   });
 
-  // gameIO.on("connection", socket => {
+  // gameRooms.on("connection", socket => {
   //   console.log(`new user joined game: ${socket.id}`);
   //
   //   socket.on("joinGame", async (data) => {
@@ -50,7 +50,7 @@ module.exports = (rootIO, gameRooms) => {
   // });
 
 
-  gameIO.on('connection', socket => {
+  gameRooms.on('connection', socket => {
     const gameRoomIO = socket.nsp;
     const hostname = gameRoomIO.hostname = gameRoomIO.hostname || socket.nsp.name.substring(6);
     const username = socket.handshake.query.username;

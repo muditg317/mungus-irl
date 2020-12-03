@@ -1,5 +1,5 @@
 const Player = require('./Player');
-const { globals, randStr } = require('../../utils');
+const { globals, randStr, socketRemoteIP } = require('../../utils');
 const { NODE_ENV } = require('../../config/env');
 
 module.exports = class Game {
@@ -52,7 +52,7 @@ module.exports = class Game {
       throw new Error("Invalid player join attempt!");
     }
     const newPlayer = new Player({
-      username, socketAddress: socket.request.connection.remoteAddress
+      username, socketAddress: socketRemoteIP(socket)
     })
     // globals.rootIO.of(`/game/${this.hostname}`).emit("playerJoin", newPlayer);
     this.players.push(newPlayer);
@@ -63,19 +63,20 @@ module.exports = class Game {
       throw new Error("Invalid player join attempt!");
     }
     const player = this.players.find(_player => _player.username === username);
-    player.socketAddress = socket.request.connection.remoteAddress;
+    player.socketAddress = socketRemoteIP(socket);
   }
 
   registerPlayerSocket(username, socket) {
     const player = this.players.find(_player => _player.username === username);
+    globals.rootIO.of("/debug").emit("debug_info", socket.handshake);
     if (!player) {
       console.log("player register fail -- username not found");
       console.log("\t", username, "|", player.username);
       return false;
     }
-    if (player.socketAddress !== socket.request.connection.remoteAddress) {
+    if (player.socketAddress !== socketRemoteIP(socket)) {
       console.log("player register fail -- socket remote address invalid");
-      console.log("\t", player.socketAddress, "|", socket.request.connection.remoteAddress);
+      console.log("\t", player.socketAddress, "|", socketRemoteIP(socket));
       return false;
     }
     if (player.active || player.wasActive) {
@@ -83,7 +84,7 @@ module.exports = class Game {
       console.log("\t", player.active, "|", player.wasActive);
       return false;
     }
-    console.log("player register success -- \n\t", username, "|", player.username, "\n\t", player.socketAddress, "|", socket.request.connection.remoteAddress, "\n\t", player.active, "|", player.wasActive);
+    console.log("player register success -- \n\t", username, "|", player.username, "\n\t", player.socketAddress, "|", socketRemoteIP(socket), "\n\t", player.active, "|", player.wasActive);
     player.socket = socket;
     player.socketID = socket.id;
     return true;

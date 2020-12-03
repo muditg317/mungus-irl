@@ -1,4 +1,4 @@
-const { globals } = require('../utils');
+const { globals, socketRemoteIP } = require('../utils');
 const { SECRET_OR_KEY } = require('../config/env');
 
 module.exports = (rootIO, debugIO) => {
@@ -9,7 +9,7 @@ module.exports = (rootIO, debugIO) => {
       err.data = { content: "Make sure you use command line args with the debugger" }; // additional details
       return next(err);
     }
-    console.log(`SOCKET-DEBUG: ${socket.id}|${socket.request.connection.remoteAddress}`);
+    console.log(`SOCKET-DEBUG: ${socket.id}|${socketRemoteIP(socket)}`);
     next();
   });
 
@@ -34,7 +34,7 @@ module.exports = (rootIO, debugIO) => {
       }
     }, 10000);
     socket.on("disconnect", reason => {
-      console.log(`Debugger leaving (${reason}): ${socket.id}|${socket.request.connection.remoteAddress}`);
+      console.log(`Debugger leaving (${reason}): ${socket.id}|${socketRemoteIP(socket)}`);
     });
   });
 };

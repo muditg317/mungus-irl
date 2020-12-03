@@ -1,10 +1,12 @@
+const { socketRemoteIP } = require('../utils');
+
 const debugSockets = require('./debug');
 const lobbySockets = require('./lobby');
 const gameSockets = require('./game');
 
 module.exports = (io) => {
   io.use((socket, next) => {
-    console.log(`SOCKET-ROOT: ${socket.id}|${socket.request.connection.remoteAddress}`);
+    console.log(`SOCKET-ROOT: ${socket.id}|${socketRemoteIP(socket)}`);
     next();
   });
 

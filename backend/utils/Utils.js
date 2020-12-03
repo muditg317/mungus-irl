@@ -42,5 +42,8 @@ module.exports = {
       result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
     return result;
+  },
+  socketRemoteIP: (socket) => {
+    return socket.handshake.headers["x-forwarded-for"].split(",")[0];
   }
 };
