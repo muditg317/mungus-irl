@@ -35,6 +35,8 @@ module.exports = {
       throw new Error(`${username} is already in the game!`);
     } else if (!existingPlayer) {
       game.addPlayer({socket, username});
+    } else {
+      game.updatePlayer({socket, username});
     }
     callback({code: "SUCCESS", message: `Joined game!`, data: game.getPublicData()});
   }

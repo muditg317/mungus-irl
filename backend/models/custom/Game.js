@@ -58,6 +58,14 @@ module.exports = class Game {
     this.players.push(newPlayer);
   }
 
+  updatePlayer({socket, username} = {}) {
+    if (!socket || !username) {
+      throw new Error("Invalid player join attempt!");
+    }
+    const player = this.players.find(_player => _player.username === username);
+    player.socketAddress = socket.request.connection.remoteAddress;
+  }
+
   registerPlayerSocket(username, socket) {
     const player = this.players.find(_player => _player.username === username);
     if (!player) {
