@@ -1,5 +1,5 @@
 html,
 html>body,
 html>body>#root {
-  @apply h-full;
+  height: 100%;
 }

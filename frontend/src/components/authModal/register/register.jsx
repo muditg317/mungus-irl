@@ -1,8 +1,6 @@
 import React, { useCallback } from 'react';
 
-const handleChange = setter => event => {
-  setter(event.target.value);
-}
+import { handleChange } from 'utils';
 
 export default function RegisterForm({ className, username, setUsername, password, setPassword, confirmPassword, setConfirmPassword, errors, doLogin, submitAuthRequest}) {
 
@@ -22,7 +20,7 @@ export default function RegisterForm({ className, username, setUsername, passwor
             <label className='field-label'>
               Username
             </label>
-            <input onChange={handleChange(setUsername)} onKeyPress={handleEnterPressed} value={username} className={`field-input field-input-text ${errors.username ? 'error' : ''}`} id='username' type='text' placeholder='Username' />
+            <input onChange={handleChange(setUsername, 15)} onKeyPress={handleEnterPressed} value={username} className={`field-input field-input-text ${errors.username ? 'error' : ''}`} id='username' type='text' placeholder='Username' />
             { errors.username && <p className='field-error'>{errors.username}</p> }
           </div>
           <div className='form-field'>

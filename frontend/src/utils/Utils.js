@@ -107,3 +107,10 @@ export function isEmpty(obj) {
 
   return JSON.stringify(obj) === JSON.stringify({});
 }
+
+export function handleChange(setter, maxLength) {
+  return event => {
+    maxLength && (event.target.value = event.target.value.substring(0, maxLength));
+    setter(event.target.value);
+  }
+}

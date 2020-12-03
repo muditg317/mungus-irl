@@ -3,15 +3,28 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs')
 const passport = require('passport');
 const http = require("http");
 const socketIO = require("socket.io");
-const { PORT: ENV_PORT } = require('./config/env');
+const { PORT: ENV_PORT, NODE_ENV = 'development' } = require('./config/env');
+const { globals } = require('./utils');
 
 const app = express();
-const server = http.createServer(app);
+const serverCertOpts = {};
+if (NODE_ENV == 'development') {
+  // serverCertOpts.key = fs.readFileSync(path.resolve('../ssl-certs/key.pem')).toString();
+  // serverCertOpts.cert = fs.readFileSync(path.resolve('../ssl-certs/cert.pem')).toString();
+  // serverCertOpts.requestCert = false;
+  // serverCertOpts.rejectUnauthorized = false;
+  // console.log(serverCertOpts);
+}
+const socketIOopts = {
+  // pingInterval: 5000
+};
+const server = http.createServer(serverCertOpts, app);
 const PORT = ENV_PORT || 8080;
-const io = socketIO(server);
+const io = socketIO(server, socketIOopts);
 require('./database');
 
 // const sessionMiddleware = session({ secret: SECRET_OR_KEY, resave: false, saveUninitialized: false });
@@ -25,7 +38,7 @@ app.use(passport.initialize());
 require('./config/passport')(passport);
 
 app.use(function(req, res, next) {
-  console.log("REQUEST AT", req.protocol + "://" + req.get('host') + req.originalUrl, "\n\t-- METHOD:", req.method, "\n\t-- AUTH:", (req.headers.authorization || "no auth").substring(0,20));
+  console.log(`${req.method} -- ${req.protocol}://${req.get('host')}${req.originalUrl} \n\t-- AUTH: ${(req.headers.authorization || "no auth").substring(0,20)}`);
   next();
 });
 
@@ -38,9 +51,9 @@ app.get('*', (request, response) => {
 
 const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
 
-io.games = {};
+globals.games = {};
+globals.rootIO = io;
 require('./sockets')(io);
-
 
 
 /* SHOULD BE FOR HOSTS ONLY
@@ -74,61 +87,6 @@ io.on("connection", (socket) => {
     //   tasksockets[data.taskID].send(message, data);
     console.log(data);
   })
-
-  socket.on("disconnect", (reason) => {
-    console.log("Client disconnected", socket.id);
-    // console.log(require('util').inspect(socket, { depth: 1 }));
-  });
-
-  socket.emit("connection", "hello");
-
-  let int;
-  let count = 5;
-  int = setInterval(() => {
-    socket.emit("message", {count: count*100 });
-    count -= 1;
-    if (count == 0) {
-      clearInterval(int);
-    }
-  }, 1000);
-
-});
-
-io.of('/lobby').on("connection", (socket) => {
-  console.log("New client connected TO LOBBY", socket.id);
-  // console.log(require('util').inspect(socket, { depth: 1 }));
-// if socket is a player {
-//   socket.on(stast task, () => {
-//     tasksocket.sendmessage(play is doing you);
-//   })
-// }
-// if socket is task {
-//   add to tasksockets
-// }
-  socket.on('message', data => {
-    // if data.type === STAST TASK)
-    //   tasksockets[data.taskID].send(message, data);
-    console.log(data);
-  })
-
-  socket.on("disconnect", (reason) => {
-    console.log("Client disconnected", socket.id);
-    // console.log(require('util').inspect(socket, { depth: 1 }));
-  });
-
-  socket.emit("connection", {yeet:5});
-
-  let int;
-  let count = 8;
-  int = setInterval(() => {
-    socket.emit("message", {loc:"lobby", count: count*100 });
-    count -= 1;
-    if (count == 0) {
-      clearInterval(int);
-    }
-  }, 1500);
-
-});
 */
 
 server.listen(PORT, () => {

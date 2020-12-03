@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 
 import QrScanner from './qr-scanner';
 console.log(QrScanner);
 
 export default function About() {
-  const [dummy, setDummy] = useState(0);
+  // const [dummy, setDummy] = useState(0);
   useEffect(() => {
     // if (dummy < 5) {
     //   console.log("waiting",dummy);

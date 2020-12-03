@@ -1,6 +1,6 @@
 import axios from 'axios';
 import jwt_decode from 'jwt-decode';
-import { setAuthToken } from 'utils';
+import { setAuthToken, DEFAULT_REGISTRATION_REDIR } from 'utils';
 import {
   GET_ERRORS,
   SET_CURRENT_USER,
@@ -25,7 +25,7 @@ export const registerUserAction = dispatch => (userData, history, authSuccessRed
       // Set current user
       setCurrentUserAction(dispatch)(decoded);
       clearErrorsAction(dispatch)();
-      history.push(authSuccessRedirect || '/dashboard');
+      history.push(authSuccessRedirect || DEFAULT_REGISTRATION_REDIR);
     }) // re-direct to login on successful register
     .catch(err =>
       console.log("auth register failed!\n", err) ||

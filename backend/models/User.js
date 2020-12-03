@@ -14,7 +14,15 @@ const userSchema = new Schema({
     type: Boolean,
     required: true,
     default: false
-  }
+  },
+  tasks: {
+    type: [{
+      type: Schema.Types.ObjectID,
+      ref: 'Task',
+    }],
+    required: true,
+    default: []
+  },
 }, {
   timestamps: true
 });

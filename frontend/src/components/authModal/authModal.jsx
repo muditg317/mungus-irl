@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback, useContext } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { isEmpty } from 'utils';
+import { isEmpty, DEFAULT_REGISTRATION_REDIR, DEFAULT_LOGIN_REDIR } from 'utils';
 import { loginUserAction, registerUserAction, clearErrorsAction } from 'state-management/actions/authActions';
 import { store } from 'state-management';
 
@@ -43,10 +43,10 @@ const AuthModal = ({ shown, registered: isRegistered, onExit, authSuccessRedirec
   useEffect(() => {
     if (shown && state.auth.isAuthenticated) {
       if (registered) {
-        const loginRedirect = authSuccessRedirect || (location.pathname === '/' && '/dashboard');
+        const loginRedirect = authSuccessRedirect || (location.pathname === '/' && DEFAULT_LOGIN_REDIR);
         loginRedirect && history.push(loginRedirect);
       } else {
-        history.push(authSuccessRedirect || '/dashboard');
+        history.push(authSuccessRedirect || DEFAULT_REGISTRATION_REDIR);
       }
       onExit();
     }

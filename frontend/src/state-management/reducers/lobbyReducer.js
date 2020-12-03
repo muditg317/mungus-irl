@@ -1,19 +1,34 @@
 import {
   ADD_AVAILABLE_GAME,
-  EMPTY_AVAILABLE_GAMES
+  REMOVE_AVAILABLE_GAME,
+  EMPTY_AVAILABLE_GAMES,
+  MARK_SET
 } from '../actions/types';
 export const initialState = {
-  hosts: []
+  games: [],
+  set: false
 };
 const lobbyReducer = (lobbyState = initialState, action) => {
   switch (action.type) {
     case ADD_AVAILABLE_GAME:
       return {
-        hosts: [...lobbyState.hosts, action.hostUsername]
+        games: [...lobbyState.games, action.payload.game],
+        set: lobbyState.set
+      };
+    case REMOVE_AVAILABLE_GAME:
+      return {
+        games: lobbyState.games.filter(game => game.host !== action.payload.game.host),
+        set: lobbyState.set
       };
     case EMPTY_AVAILABLE_GAMES:
       return {
-        hosts: []
+        games: [],
+        set: lobbyState.set
+      };
+    case MARK_SET:
+      return {
+        games: lobbyState.games,
+        set: true
       };
     default:
       return lobbyState;

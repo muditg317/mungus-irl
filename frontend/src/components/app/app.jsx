@@ -11,8 +11,9 @@ import AppHeader from './app-header';
 import AppFooter from './app-footer';
 import AuthModal from 'components/authModal';
 
-import Lobby from 'components/lobby';
 import About from 'components/about';
+import Lobby from 'components/lobby';
+import Game from 'components/game';
 
 import PrivateRoute from 'components/private-route';
 import Dashboard from 'components/dashboard';
@@ -93,6 +94,9 @@ export default function App(props) {
           </Route>
           <Route exact path={['/', '/lobby']}>
             <Lobby {...{openAuthModal}} />
+          </Route>
+          <Route path='/game'>
+            <Game />
           </Route>
           <PrivateRoute path='/dashboard'>
             <Dashboard />
