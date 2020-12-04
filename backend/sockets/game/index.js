@@ -58,11 +58,11 @@ module.exports = (rootIO, gameRooms) => {
     const game = globals.games[hostname];
 
     try {
-      let socketSuccess = game.registerPlayerSocket(username, socket);
-      if (!socketSuccess) {
-        throw new Error("Failed to register socket");
-      }
-      console.log("socketSuccess!",socket.id);
+      // let socketSuccess = game.registerPlayerSocket(username, socket);
+      // if (!socketSuccess) {
+      //   throw new Error("Failed to register socket");
+      // }
+      // console.log("socketSuccess!",socket.id);
     } catch (error) {
       console.error(error);
       socket.volatile.emit("error", "failed to register socket");

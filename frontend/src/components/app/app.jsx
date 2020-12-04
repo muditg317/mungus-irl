@@ -16,7 +16,7 @@ import Lobby from 'components/lobby';
 import Game from 'components/game';
 
 import PrivateRoute from 'components/private-route';
-import Dashboard from 'components/dashboard';
+import TaskManager from 'components/task-manager';
 
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
@@ -98,8 +98,8 @@ export default function App(props) {
           <Route path='/game'>
             <Game />
           </Route>
-          <PrivateRoute path='/dashboard'>
-            <Dashboard />
+          <PrivateRoute path='/task-manager'>
+            <TaskManager />
           </PrivateRoute>
           <Route path='/'>
             <Redirect to='/' />

@@ -9,13 +9,22 @@ module.exports = (io) => {
     console.log(`SOCKET-ROOT: ${socket.id}|${socketRemoteIP(socket)}`);
     next();
   });
+  io.on("connection", socket => {
+    console.log(`SOCKET-ROOT-${socket.nsp.name}: ${socket.id}|${socketRemoteIP(socket)}`);
+  });
 
-  debugIO = io.of('/debug');
+  const debugIO = io.of('/debug');
   debugSockets(io, debugIO);
 
-  lobbyIO = io.of('/lobby');
+  const lobbyIO = io.of('/lobby');
   lobbySockets(io, lobbyIO);
 
-  gameIO = io.of(/^\/game\/[\w\d]+$/);
+  const gameIO = io.of(/^\/game\/[\w\d]+$/);
   gameSockets(io, gameIO);
+
+
+  const fallbackIO = io.of(/.*/g);
+  fallbackIO.on("connection", socket => {
+    console.log(`SOCKET-FALLBACK-${socket.nsp.name}: ${socket.id}|${socketRemoteIP(socket)}`);
+  });
 };

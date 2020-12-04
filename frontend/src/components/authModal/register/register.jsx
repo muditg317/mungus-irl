@@ -25,14 +25,14 @@ export default function RegisterForm({ className, username, setUsername, passwor
           </div>
           <div className='form-field'>
             <label className='field-label'>
-              Password
+              Password <span className="text-light text-xs">  (Please don't use the same password you usually use.)</span>
             </label>
             <input onChange={handleChange(setPassword)} onKeyPress={handleEnterPressed} value={password} className={`field-input field-input-text ${errors.password ? 'error' : ''}`} id='password' type='password' placeholder='******************' />
             { errors.password && <p className='field-error'>{errors.password}</p>}
           </div>
           <div className='form-field'>
             <label className='field-label'>
-              Confirm Password
+              Confirm Password <span className="text-light text-xs">  (There is little to no security in use here.)</span>
             </label>
             <input onChange={handleChange(setConfirmPassword)} onKeyPress={handleEnterPressed} value={confirmPassword} className={`field-input field-input-text ${errors.confirmPassword ? 'error' : ''}`} id='confirmPassword' type='password' placeholder='******************' />
             { errors.confirmPassword && <p className='field-error'>{errors.confirmPassword}</p>}

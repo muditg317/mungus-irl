@@ -32,7 +32,7 @@ export default function Game() {
   // const forceUpdate = useForceUpdate();
   // const [ forcer, setForcer ] = useState(0);
 
-  useEffectDebugger(() => {
+  useEffect(() => {
     // console.log(require('util').inspect(socketIOClient, { depth: null }));
     if (!hostname || !gameToken) {
       // setSocket(null);
@@ -45,7 +45,7 @@ export default function Game() {
     //   console.log("socket exists");
     //   return () => socket.disconnect();
     // }
-    console.log("create socket");
+    console.log("create socket", hostname, username, gameToken);
     const socketIO = socketIOClient(`/game/${hostname}`, { forceNew: true, query: { gameToken, username } });
     socketIO.on("connect", data => {
       console.log("connected to server", data||'');

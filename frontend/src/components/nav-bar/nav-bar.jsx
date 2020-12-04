@@ -39,8 +39,8 @@ export default function NavBar({ onAuthButtonPress }) {
       <div className={`w-full ${responsive ? "block z-70" : "hidden"} flex-grow md:flex md:items-center md:w-auto absolute md:relative top-full md:top-0 bg-black -ml-3 md:ml-0 p-3 md:p-0 pt-0`}>
         <div className="text-sm md:flex-grow">
           { isAuthenticated && <>
-            <Link to="/dashboard" className="block mt-4 mb-4 md:mb-0 md:inline-block md:mt-0 text-white hover:text-red-700 mr-4">
-              Dashboard
+            <Link to="/task-manager" className="block mt-4 mb-4 md:mb-0 md:inline-block md:mt-0 text-white hover:text-red-700 mr-4">
+              Task Manager
             </Link>
           </> }
           <Link to="/about" className="block mt-4 mb-4 md:mb-0 md:inline-block md:mt-0 text-white hover:text-red-700 mr-4">

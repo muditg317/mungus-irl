@@ -3,7 +3,7 @@ import { useHistory } from 'react-router-dom';
 import { store } from 'state-management';
 import { logoutUserAction } from "state-management/actions/authActions";
 
-const Dashboard = () => {
+const TaskManager = () => {
   const { state, dispatch } = useContext(store);
   const logoutUser = useCallback((...args) => logoutUserAction(dispatch)(...args), [dispatch]);
   const [ userData, setUserData ] = useState(state.user);
@@ -51,4 +51,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default TaskManager;

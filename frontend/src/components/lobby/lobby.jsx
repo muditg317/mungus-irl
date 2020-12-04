@@ -42,6 +42,8 @@ export default function Lobby({ openAuthModal }) {
     }
   }, [openAuthModal, location, history, ]);
 
+  //TODO: Make lobby a higher order component of type public page (move the above effect into there)
+
   const openJoinModal = useCallback((hostname, joinError) => {
     setShowJoinModal({hostname, joinError});
   }, []);
@@ -50,6 +52,107 @@ export default function Lobby({ openAuthModal }) {
     // console.log("closeJoinModal");
     setShowJoinModal('');
   }, []);
+
+
+  useEffect(() => {
+    setGames(state.lobby.games);
+  }, [state.lobby.games]);
+
+  useEffect(() => {
+    if (state.auth.user.username || !username) {
+      setUsername(state.auth.user.username || localStorage.getItem('username') || `Player ${Math.floor(Math.random()*1000)}`);
+    }
+  }, [state.auth.user.username, username]);
+
+  useEffect(() => {
+    if (showJoinModal && showJoinModal.hostname) {
+      if (socket && state.lobby.set && !state.lobby.games.map(game => game.hostname).includes(showJoinModal.hostname)) {
+        // console.log(socket, state.lobby.set, state.lobby.games.map(game => game.hostname), showJoinModal.hostname);
+        closeJoinModal();
+      }
+    }
+  }, [showJoinModal, state.lobby.set, state.lobby.games, socket, closeJoinModal]);
+
+  useEffect(() => {
+    const socketIO = socketIOClient('/lobby', { forceNew: true, query: { username: localStorage.getItem('username') } });
+    socketIO.on("connect", data => {
+      console.log("connect to socket", data||'');
+    });
+    socketIO.on('newGame', data => {
+      console.log('newGame', data);
+      addAvailableGame(data.game);
+    });
+    socketIO.on('removeGame', data => {
+      console.log('removeGame', data);
+      removeAvailableGame(data.game);
+    });
+    socketIO.on("games", data => {
+      console.log('games', data);
+      setAvailableGames(data.games);
+    });
+    // console.log(socket);
+    setSocket(socketIO);
+    return () => socketIO.disconnect();
+  }, [addAvailableGame, removeAvailableGame, setAvailableGames]);
+
+  const joinGame = useCallback((data) => {
+    const { gameToken: newGameToken, hostname } = data;
+    localStorage.setItem('username', username);
+    console.log(newGameToken);
+    setTimeout(() => {
+      setGameToken({ gameToken: newGameToken, hostname });
+    }, 1000);
+  }, [username, setGameToken]);
+
+  const createGame = useCallback(() => {
+    socket.emit("createGame", {...checkValidAuthToken()}, result => {
+      const { code, message, data } = result;
+      if (code === 'ERROR') {
+        return console.error("game creation failed!", message);
+      }
+      console.log("Game created!!", message);
+      console.log("game info:",data);
+      joinGame(data);
+    });
+  }, [socket, joinGame]);
+
+  const attemptJoin = useCallback((hostname, passcode) => {
+    socket && socket.emit("joinGame", {hostname, passcode, username: state.auth.isAuthenticated ? state.auth.user.username : username}, result => {
+      const { code, message, data } = result;
+      if (code === 'ERROR') {
+        setShowJoinModal(prev => {
+          if (prev && prev.hostname) {
+            return {...prev, joinError: message};
+          }
+          return { hostname, joinError: message};
+        });
+        return console.error("game creation failed!", message);
+      }
+      console.log("Game joined!!", message);
+      console.log("game info:",data);
+      joinGame(data);
+    });
+  }, [socket, username, joinGame, state.auth.isAuthenticated, state.auth.user.username]);
+
+  const onJoinPress = useCallback((event, hostname) => {
+    if (username) {
+      openJoinModal(hostname);
+      console.log(`|${username}|setShowJoinModal(${hostname});`);
+      event.preventDefault();
+    } else {
+      usernameRef.current.focus();
+      usernameRef.current.classList.add("placeholder-red-600");
+      usernameRef.current.classList.add("placeholder-opacity-75");
+      usernameRef.current.classList.add("animate-jiggle");
+      setTimeout(() => {
+        usernameRef.current.classList.remove("placeholder-red-600");
+        usernameRef.current.classList.remove("placeholder-opacity-75");
+        usernameRef.current.classList.remove("animate-jiggle");
+      }, 100);
+    }
+  }, [username, openJoinModal]);
+
+
 
   useEffect(() => {
     const { username: providedUsername, hostname, joinError } = location;
@@ -75,6 +178,7 @@ export default function Lobby({ openAuthModal }) {
       //   }
       // })();
     }
+    // TODO: consider useREf for timeout variable
     return ((to) => {
       // if (to) {
       //   clearTimeout(to);
@@ -82,114 +186,7 @@ export default function Lobby({ openAuthModal }) {
     }).bind(null, timeout);
   }, [openJoinModal, location, state.auth.user.username, showJoinModal.hostname, socket, state.lobby.games, state.lobby.set]);
 
-  //TODO: Make lobby a higher order component of type public page (move the above effect into there)
 
-  useEffect(() => {
-    setGames(state.lobby.games);
-  }, [state.lobby.games]);
-
-  useEffect(() => {
-    if (state.auth.user.username || !username) {
-      setUsername(state.auth.user.username || localStorage.getItem('username') || `Player ${Math.floor(Math.random()*1000)}`);
-    }
-  }, [state.auth.user.username, username]);
-
-  useEffect(() => {
-    if (showJoinModal && showJoinModal.hostname) {
-      if (socket && state.lobby.set && !state.lobby.games.map(game => game.hostname).includes(showJoinModal.hostname)) {
-        console.log(socket, state.lobby.set, state.lobby.games.map(game => game.hostname), showJoinModal.hostname);
-        closeJoinModal();
-      }
-    }
-  }, [showJoinModal, state.lobby.set, state.lobby.games, socket, closeJoinModal]);
-
-  useEffect(() => {
-    // console.log(require('util').inspect(socketIOClient, { depth: null }));
-    //
-    const socketIO = socketIOClient('/lobby', { forceNew: true });
-    socketIO.on("connect", data => {
-      console.log("connect to socket", data||'');
-    });
-    socketIO.on('newGame', data => {
-      console.log('newGame', data);
-      addAvailableGame(data.game);
-    });
-    socketIO.on('removeGame', data => {
-      console.log('removeGame', data);
-      removeAvailableGame(data.game);
-    });
-    socketIO.on("games", data => {
-      console.log('games', data);
-      setAvailableGames(data.games);
-    });
-    // console.log(socket);
-    // socketIO.emit("test", {yeet:"yeet"});
-    setSocket(socketIO);
-    return () => socketIO.disconnect();
-  }, [addAvailableGame, removeAvailableGame, setAvailableGames]);
-
-  const joinGame = useCallback((data) => {
-    const { gameToken: newGameToken, hostname } = data;
-    localStorage.setItem('username', username);
-    console.log(newGameToken);
-    setGameToken({ gameToken: newGameToken, hostname });
-  }, [username, setGameToken]);
-
-  const createGame = useCallback(() => {
-    socket.emit("createGame", {...checkValidAuthToken()}, result => {
-      const { code, message, data } = result;
-      if (code === 'ERROR') {
-        return console.error("game creation failed!", message);
-      }
-      console.log("Game created!!", message);
-      console.log("game info:",data);
-      joinGame(data);
-    });
-  }, [socket, joinGame]);
-
-
-  const onJoinPress = useCallback((event, hostname) => {
-    // console.log(`|${username}|setShowJoinModal(${hostname});`);
-    if (username) {
-      openJoinModal(hostname);
-      console.log(`|${username}|setShowJoinModal(${hostname});`);
-      event.preventDefault();
-    } else {
-      usernameRef.current.focus();
-      usernameRef.current.classList.add("placeholder-red-600");
-      usernameRef.current.classList.add("placeholder-opacity-75");
-      usernameRef.current.classList.add("animate-jiggle");
-      setTimeout(() => {
-        usernameRef.current.classList.remove("placeholder-red-600");
-        usernameRef.current.classList.remove("placeholder-opacity-75");
-        usernameRef.current.classList.remove("animate-jiggle");
-      }, 100);
-    }
-  }, [username, openJoinModal]);
-
-
-  const attemptJoin = useCallback((hostname, passcode) => {
-    socket.emit("joinGame", {hostname, passcode, username: state.auth.isAuthenticated ? state.auth.user.username : username}, result => {
-      const { code, message, data } = result;
-      if (code === 'ERROR') {
-        setShowJoinModal(prev => {
-          if (prev && prev.hostname) {
-            return {...prev, joinError: message};
-          }
-        });
-        return console.error("game creation failed!", message);
-      }
-      console.log("Game joined!!", message);
-      console.log("game info:",data);
-      joinGame(data);
-    });
-  }, [socket, username, joinGame, state.auth.isAuthenticated, state.auth.user.username]);
-
-  // TODO: create pinging to delete stale games
-
-  // TODO:remove
-  window.games = games;
-  window.setGames = setGames;
 
   if (gameToken && gameToken.gameToken && gameToken.hostname) {
     return <Redirect to={{

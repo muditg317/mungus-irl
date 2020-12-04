@@ -28,7 +28,7 @@ module.exports = {
     if (!globals.games[hostname])
       throw new Error(`No game hosted by ${hostname}!`);
     const game = globals.games[hostname];
-    if (game.passcode !== passcode)
+    if (!passcode || game.passcode !== passcode.toLowerCase())
       throw new Error("Wrong passcode!");
     const existingPlayer = game.players.find(_player => _player.username === username);
     if (existingPlayer && (existingPlayer.active || existingPlayer.wasActive)) {

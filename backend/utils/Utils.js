@@ -44,6 +44,12 @@ module.exports = {
     return result;
   },
   socketRemoteIP: (socket) => {
-    return socket.handshake.headers["x-forwarded-for"].split(",")[0];
+    let remoteAddress;
+    try {
+      remoteAddress = socket.handshake.headers["x-forwarded-for"].split(",")[0];
+    } catch (error) {
+      remoteAddress = socket.handshake.address;
+    }
+    return remoteAddress;
   }
 };

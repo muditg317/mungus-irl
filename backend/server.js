@@ -60,6 +60,15 @@ if (NODE_ENV !== 'development') {
     console.log("GAME INFO:");
     console.log(require('util').inspect(globals.games, { depth: 4 }));
   }, 30000);
+  setInterval(() => {
+    console.log("IO info");
+    console.log(Object.keys(io.sockets.sockets));
+    io._nsps.forEach(nsp => {
+      nsp.sockets.forEach(socket => {
+        console.log(`socket at |${nsp.name}|: id:${socket.id}|`);
+      });
+    });
+  }, 30000);
 }
 
 /* SHOULD BE FOR HOSTS ONLY

@@ -101,7 +101,7 @@ const AuthModal = ({ shown, registered: isRegistered, onExit, authSuccessRedirec
 
   const sendLoginRequest = useCallback(() => {
     const userData = {
-      username, password,
+      username: username.trim(), password,
     };
     loginUser(userData, history, authSuccessRedirect);
   }, [history, authSuccessRedirect, loginUser, username, password]);
