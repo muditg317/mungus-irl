@@ -117,7 +117,7 @@ export default function Lobby({ openAuthModal }) {
   }, [socket, joinGame]);
 
   const attemptJoin = useCallback((hostname, passcode) => {
-    socket && socket.emit("joinGame", {hostname, passcode, username: state.auth.isAuthenticated ? state.auth.user.username : username}, result => {
+    socket && socket.emit("joinGame", { hostname, passcode, username: state.auth.isAuthenticated ? state.auth.user.username : username }, result => {
       const { code, message, data } = result;
       if (code === 'ERROR') {
         setShowJoinModal(prev => {

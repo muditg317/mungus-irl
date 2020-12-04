@@ -14,10 +14,11 @@ module.exports = (rootIO, lobbyIO) => {
   });
 
   lobbyIO.on("connection", async (socket) => {
+    socket.join("lobby");
     console.log(`new user joined lobby: ${socket.id}`);
 
-    //TODO: socket join lobby room within lobby namespace (for easier broadcasting)
-    socket.join("lobby");
+    const socketUsername = socket.handshake.query.username || '';
+
 
     socket.on("test", data => {
       console.log("test received:", data);
@@ -50,7 +51,6 @@ module.exports = (rootIO, lobbyIO) => {
 
     socket.on("disconnect", (reason) => {
       console.log(`SOCKET-LOBBY EXIT (${reason}): ${socket.id}`);
-      //TODO: socket leave lobby
       socket.leave("lobby");
     });
 
@@ -61,7 +61,7 @@ module.exports = (rootIO, lobbyIO) => {
       //   let host = await User.findById(game.hostname, "username").exec();
       //   return host.username;
       // }));
-      const availableGames = Object.keys(globals.games).filter(hostname => !globals.games[hostname].started).map(hostname => globals.games[hostname].getPublicData());
+      const availableGames = Object.keys(globals.games).filter(hostname => !globals.games[hostname].started || globals.games[hostname].players[socketUsername]).map(hostname => globals.games[hostname].getPublicData(false));
       // const hostnames = availableGames.map(game => game.hostname);
       socket.emit("games", {games: availableGames});
     } catch (error) {

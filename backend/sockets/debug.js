@@ -3,11 +3,11 @@ const { SECRET_OR_KEY } = require('../config/env');
 
 module.exports = (rootIO, debugIO) => {
   debugIO.use((socket, next) => {
-    console.log("DEBUG JOIN ATTEMPT", socket.handshake.query.SECRET);
+    // console.log("DEBUG JOIN ATTEMPT", socket.handshake.query.SECRET);
     const secret = socket.handshake.query.SECRET;
     // console.log("secret extracted",secret);
     if (secret !== SECRET_OR_KEY) {
-      console.log("provided secret:",secret);
+      // console.log("provided secret:",secret);
       const err = new Error("Invalid debug secret!");
       err.data = { content: "Make sure you use command line args with the debugger" }; // additional details
       return next(err);
