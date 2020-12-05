@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useContext, useRef } from 'react';
-import { Redirect, useHistory, useLocation } from "react-router-dom";
+import { Redirect, useHistory, useLocation, useRouteMatch } from "react-router-dom";
 import socketIOClient from 'socket.io-client';
 
 import { addAvailableGameAction, removeAvailableGameAction, setAvailableGamesAction } from 'state-management/actions/lobbyActions';
@@ -13,6 +13,7 @@ import banner from 'assets/images/mungus-banner.jpg';
 
 
 export default function Lobby({ openAuthModal }) {
+  // console.log("render lobby");
   const { state, dispatch } = useContext(store);
   const addAvailableGame = useCallback((...args) => addAvailableGameAction(dispatch)(...args), [dispatch]);
   const removeAvailableGame = useCallback((...args) => removeAvailableGameAction(dispatch)(...args), [dispatch]);
@@ -23,11 +24,15 @@ export default function Lobby({ openAuthModal }) {
   const [ socket, setSocket ] = useState();
   const [ showJoinModal, setShowJoinModal ] = useState('');
   const [ gameToken, setGameToken ] = useState(JSON.parse(sessionStorage.getItem("gameToken")));
+  const match = useRouteMatch();
+  // console.log(require('util').inspect(match, { depth: null }));
+  console.log(match && match.path && match.path.includes("lobby"));
   const location = useLocation();
   const history = useHistory();
 
   useEffect(() => {
     // TODO: FIX THIS: when sent back to list, the thingy shouldn't flash
+    setGames([]);
     return () => {
       setGames([]);
     };
@@ -159,45 +164,50 @@ export default function Lobby({ openAuthModal }) {
         usernameRef.current.classList.remove("animate-jiggle");
       }, 100);
     }
-  }, [username, openJoinModal]);
+  }, [username, openJoinModal, attemptJoin, games, socket, state.auth.isAuthenticated, state.auth.user.username]);
 
 
 
   useEffect(() => {
-    const { username: providedUsername, hostname, joinError } = location;
+    const { username: providedUsername, hostname, joinError, leftGame } = location;
+
+    if (leftGame) {
+      return;
+    }
     if (providedUsername) {
       setUsername(state.auth.user.username || providedUsername);
     }
-    let timeout;
     if (hostname) {
-      location.hostname = '';
       console.log("JOIN FAILED:",hostname,"|",joinError,"|");
-      // let manualBreak = false;
-      timeout = setTimeout(() => {
-        console.log("JOIN FAILED- OPEN MODAL:",hostname,"|",joinError,"|");
-        openJoinModal(hostname, joinError);
-        // manualBreak = true;
-      }, 1000);
-      // (async () => {
-      //   while ((!socket || !state.lobby.set) && !manualBreak) {
-      //     console.log("waiting");
-      //   }
-      //   if (state.lobby.games.map(game => game.hostname).includes(showJoinModal.hostname)) {
-      //     openJoinModal(hostname, joinError);
-      //   }
-      // })();
+      console.log(`socket:${!!socket}|auth:${state.auth.user.username}|host:${hostname}|user:${providedUsername}|games:${games.map(game=>game.hostname)}`);
+      if (socket && state.auth.isAuthenticated && (state.auth.user.username === hostname) && hostname === providedUsername) {
+        console.log("speedy host join");
+        attemptJoin(hostname, { asHost: checkValidAuthToken() });
+      } else if (socket && games.filter(game => game.hostname === hostname && game.players.includes(providedUsername.trim())).length) {
+        // TODO: add logic for auto joining games that are already started
+        console.log("speedy rejoin!", games.filter(game => game.hostname === hostname && game.players.includes(providedUsername.trim())));
+        attemptJoin(hostname, { rejoining: true });
+      } else {
+        location.hostname = '';
+        setTimeout(() => {
+          console.log("JOIN FAILED- OPEN MODAL:",hostname,"|",joinError,"|");
+          openJoinModal(hostname, joinError);
+        }, 1000);
+      }
     }
-    // TODO: consider useREf for timeout variable
-    return ((to) => {
-      // if (to) {
-      //   clearTimeout(to);
-      // }
-    }).bind(null, timeout);
-  }, [openJoinModal, location, state.auth.user.username, showJoinModal.hostname, socket, state.lobby.games, state.lobby.set]);
+  }, [openJoinModal, location, state.auth.isAuthenticated, games, state.auth.user.username, showJoinModal.hostname, socket, state.lobby.games, state.lobby.set, attemptJoin]);
 
 
+  if (match && match.path && !match.path.includes("lobby")) {
+    sessionStorage.removeItem("gameToken");
+    return <Redirect to={{
+      ...location,
+      pathname: `/lobby`
+    }}/>
+  }
 
   if (gameToken && gameToken.gameToken && gameToken.hostname) {
+    sessionStorage.setItem("gameToken", JSON.stringify(gameToken));
     return <Redirect to={{
       pathname: `/game/${gameToken.hostname}`,
       gameToken: gameToken.gameToken,

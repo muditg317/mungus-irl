@@ -138,6 +138,7 @@ module.exports = class Game {
     delete player.socketID;
     // TODO:  player.active = false;
     if (!this.numActivePlayers()) {
+      console.log(`CLOSE GAME: ${this.hostname}| -- all players gone`);
       this.close();
     }
     return true;

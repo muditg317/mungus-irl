@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const Game = require('../models/custom/Game');
 const Task = require('../models/Task');
-const { globals, verifyJWTtoken, randStr } = require('../utils');
+const { globals, verifyJWTtoken, randStr, socketRemoteIP } = require('../utils');
 const { MONGOOSE_READ_TIMEOUT } = require('../config/env');
 
 module.exports = {
@@ -27,6 +27,10 @@ module.exports = {
   joinGame: async (rootIO, lobbyIO, socket, callback, hostname, passcode, username) => {
     if (!globals.games[hostname])
       throw new Error(`No game hosted by ${hostname}!`);
+    username = username.trim && username.trim();
+    if (!username || !username.length) {
+      throw new Error("Invalid username");
+    }
     const game = globals.games[hostname];
     const existingPlayer = game.getPlayer(username);
     // TODO: do i still want ignore case??
@@ -66,6 +70,6 @@ module.exports = {
       console.log("add player")
       game.addPlayer({socket, username});
     }
-    callback({ code: "SUCCESS", message: `Joined game!`, data: {...game.getPublicData(), gameToken: game.gameToken } });
+    callback({ code: "SUCCESS", message: `Joined game!`, data: { ...game.getPublicData(), gameToken: game.gameToken } });
   }
 }
