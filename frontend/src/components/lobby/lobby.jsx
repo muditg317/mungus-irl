@@ -22,7 +22,7 @@ export default function Lobby({ openAuthModal }) {
   const [ games, setGames ] = useState([]);
   const [ socket, setSocket ] = useState();
   const [ showJoinModal, setShowJoinModal ] = useState('');
-  const [ gameToken, setGameToken ] = useState();
+  const [ gameToken, setGameToken ] = useState(JSON.parse(sessionStorage.getItem("gameToken")));
   const location = useLocation();
   const history = useHistory();
 
@@ -136,8 +136,17 @@ export default function Lobby({ openAuthModal }) {
 
   const onJoinPress = useCallback((event, hostname) => {
     if (username) {
-      openJoinModal(hostname);
-      console.log(`|${username}|setShowJoinModal(${hostname});`);
+      if (socket && state.auth.isAuthenticated && (state.auth.user.username === hostname) && hostname === username) {
+        console.log("speedy host join");
+        attemptJoin(hostname, { asHost: checkValidAuthToken() });
+      } else if (socket && games.filter(game => game.hostname === hostname && game.players.includes(username.trim())).length) {
+        // TODO: add logic for auto joining games that are already started
+        console.log("speedy rejoin!", games.filter(game => game.hostname === hostname && game.players.includes(username.trim()))[0]);
+        attemptJoin(hostname, { rejoining: true });
+      } else {
+        openJoinModal(hostname);
+        console.log(`|${username}|setShowJoinModal(${hostname});`);
+      }
       event.preventDefault();
     } else {
       usernameRef.current.focus();
