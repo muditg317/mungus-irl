@@ -23,6 +23,7 @@ export default function Game() {
   // const [ socket, setSocket ] = useState();
   const socketRef = useRef();
   window.socketRef = socketRef;
+  const pingTimeoutRef = useRef();
   const [ leaving, setLeaving ] = useState(false);
 
   const [ players, setPlayers ] = useState({});
@@ -52,32 +53,26 @@ export default function Game() {
 
     console.log("create socket", hostname, username, gameToken);
     console.log(`/game/${hostname}`, { forceNew: true, query: { gameToken, username, clientType: "PLAYER" } });
-    // const socketIO = socketIOClient(`/game/${hostname}`, { forceNew: true, query: { gameToken, username, clientType: "PLAYER" } }).connect();
+    // TODO: use client type -- socketRef.current = socketIOClient(`/game/${hostname}`, { forceNew: true, query: { gameToken, username, clientType: "PLAYER" } }).connect();
     if (!socketRef.current)
       socketRef.current = socketIOClient(`/game/${hostname}`, { forceNew: true, query: { gameToken, username } });
+
     socketRef.current.on("connect", data => {
       console.log("connected to server", data||'');
       // sessionStorage.setItem("gameToken", JSON.stringify({gameToken, hostname}));
-      // if (reconnectInterval) {
-      //   clearInterval(reconnectInterval);
-      //   setReconnectInterval(0);
-      // }
     });
     socketRef.current.on("connect_error", err => {
-      // console.log(err instanceof Error);
-      // console.log(err.message);
-      // console.log(err.data);
-      // sessionStorage.removeItem("gameToken");
+      sessionStorage.removeItem("gameToken");
       setJoinError(`${err.message} | ${err.data && err.data.content}`);
     });
 
-    setInterval(() => {
-      socketRef.current.emit('pingus', {time: Date.now()}, (pingusTime) => {
-          const lat = Date.now() - pingusTime;
-          setLatency(lat);
-          // console.log("LATENCY:", lat);
-      });
-    }, 2000);
+    // setInterval(() => {
+    //   socketRef.current.emit('pingus', {time: Date.now()}, (pingusTime) => {
+    //       const lat = Date.now() - pingusTime;
+    //       setLatency(lat);
+    //       // console.log("LATENCY:", lat);
+    //   });
+    // }, 2000);
 
 
     socketRef.current.on("gameData", data => {
@@ -95,7 +90,7 @@ export default function Game() {
     socketRef.current.on('gameStarted', data => {
     });
     socketRef.current.on('gameEnded', data => {
-      // sessionStorage.removeItem("gameToken");
+      sessionStorage.removeItem("gameToken");
       setLeaving(true);
     });
 
@@ -103,11 +98,11 @@ export default function Game() {
       console.log("socket disconnected: ", reason);
       switch (reason) {
         case "io server disconnect":
-          // sessionStorage.removeItem("gameToken");
+          sessionStorage.removeItem("gameToken");
           setLeaving(true);
           break;
         case "io client disconnect":
-          // sessionStorage.removeItem("gameToken");
+          sessionStorage.removeItem("gameToken");
           setLeaving(true);
           break;
         default:
@@ -129,14 +124,37 @@ export default function Game() {
     // setSocket(socketRef.current);
     return () => {
       socketRef.current && socketRef.current.disconnect();
-      // // sessionStorage.removeItem("gameToken");
+      // sessionStorage.removeItem("gameToken");
     };
   }, [hostname, username, gameToken, setGameData, setPlayerData], ['hostname', 'username', 'gameToken']);
+
+  useEffect(() => {
+    const checkLatency = () => {
+      clearTimeout(pingTimeoutRef.current);
+      if (socketRef.current.connected) {
+        console.log("check latency");
+        // console.log(require('util').inspect(socketRef.current, { depth: 1 }));
+        console.log(`socketRef.current nsp:${socketRef.current.nsp}| id:${socketRef.current.id}| conn:${socketRef.current.connected}`);
+        socketRef.current.emit('pingus', {time: Date.now()}, (pingusTime) => {
+            const lat = Date.now() - pingusTime;
+            setLatency(lat);
+            console.log("LATENCY:", lat);
+        });
+      } else {
+        console.log("not connected");
+      }
+      pingTimeoutRef.current = setTimeout(checkLatency, 2000);
+    };
+    checkLatency();
+    return () => {
+      clearTimeout(pingTimeoutRef.current);
+    };
+  }, []);
 
   const leaveGame = useCallback((event) => {
     console.log("attempt leave");
     socketRef.current && socketRef.current.emit("leaveGame", { username }, result => {
-      // sessionStorage.removeItem("gameToken");
+      sessionStorage.removeItem("gameToken");
       setLeaving(true);
     });
   }, [username]);
@@ -157,13 +175,13 @@ export default function Game() {
     return ((leav) => {
       if (leav || leaving) {
         console.log("leaving! clear token");
-        // sessionStorage.removeItem("gameToken");
+        sessionStorage.removeItem("gameToken");
       }
     }).bind(null, leaving);
   }, [leaving]);
 
   if (leaving) {
-    // sessionStorage.removeItem("gameToken");
+    sessionStorage.removeItem("gameToken");
     return <Redirect to={{
       pathname: `/lobby`,
       leftGame: true

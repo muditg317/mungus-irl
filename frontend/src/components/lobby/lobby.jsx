@@ -208,6 +208,7 @@ export default function Lobby({ openAuthModal }) {
 
   if (gameToken && gameToken.gameToken && gameToken.hostname) {
     sessionStorage.setItem("gameToken", JSON.stringify(gameToken));
+    console.log("ready to join", gameToken);
     return <Redirect to={{
       pathname: `/game/${gameToken.hostname}`,
       gameToken: gameToken.gameToken,

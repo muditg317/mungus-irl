@@ -33,11 +33,13 @@ module.exports = {
     }
     const game = globals.games[hostname];
     const existingPlayer = game.getPlayer(username);
+    let speedyRejoin = false;
     // TODO: do i still want ignore case??
     if (!passcode || (typeof passcode === "string" && game.passcode !== passcode.toLowerCase()))
       throw new Error("Wrong passcode!");
     else if (typeof passcode === "object" && passcode.asHost) {
       console.log("attempt speedy rejoin!", "host");
+      speedyRejoin = true;
       let { id, username: tokenUsername } = verifyJWTtoken(passcode.asHost.token.slice(passcode.asHost.token.indexOf(' ')+1));
       if (tokenUsername !== username) {
         throw new Error("Attempt to join with bad host credentials!");
@@ -50,6 +52,7 @@ module.exports = {
         throw new Error("Attempt to join with invalid host credentials!");
     } else if (typeof passcode === "object" && passcode.rejoining && existingPlayer) {
       console.log("attempt speedy rejoin!", existingPlayer && {...existingPlayer, socket:existingPlayer.socket?'socket':'none'});
+      speedyRejoin = true;
       if (existingPlayer.socket && existingPlayer.socketAddress !== socketRemoteIP(socket)) {
         if (existingPlayer.socket.connected) {
           throw new Error("Attempt speedy rejoin game when user already active in game");
@@ -61,7 +64,7 @@ module.exports = {
       }
     }
     console.log(`trying to join with existing player u:${username}|player:${existingPlayer}|list:${game.getPlayerUsernames()}|`);
-    if (existingPlayer && (existingPlayer.isActive({loose:true}))) {
+    if (existingPlayer && (existingPlayer.isActive({loose:true})) && !speedyRejoin) {
       throw new Error(`${username} is already in the game!`);
     } else if (existingPlayer) {
       console.log("update player");
