@@ -55,7 +55,7 @@ export default function Game() {
     console.log(`/game/${hostname}`, { forceNew: true, query: { gameToken, username, clientType: "PLAYER" } });
     // TODO: use client type -- socketRef.current = socketIOClient(`/game/${hostname}`, { forceNew: true, query: { gameToken, username, clientType: "PLAYER" } }).connect();
     if (!socketRef.current)
-      socketRef.current = socketIOClient(`/game/${hostname}`, { forceNew: true, query: { gameToken, username } });
+      socketRef.current = socketIOClient(`/game/${hostname}`, { forceNew: true, query: { gameToken, username, clientType: "PLAYER" } });
 
     socketRef.current.on("connect", data => {
       console.log("connected to server", data||'');

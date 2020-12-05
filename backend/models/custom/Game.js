@@ -3,11 +3,13 @@ const { globals, randStr, socketRemoteIP } = require('../../utils');
 const { NODE_ENV } = require('../../config/env');
 
 module.exports = class Game {
-  static RESPONSELESS_PING_THRESHOLD = NODE_ENV === 'development' ? 10 : 20; // TODO: 20
+  static RESPONSELESS_PING_THRESHOLD = NODE_ENV === 'development' ? 2 : 2;
 
   constructor({ hostname, tasks, sockets, started, players, passcode, gameToken } = {}) {
     this.hostname = hostname;
     // TODO: add gameIO
+    // this.gameRoomIO = globals.rootIO.of(`/game/${hostname}`);
+    // TODO: NO! BAD! NEVER MAKE NAMESPACE WITH of() !!!!!!!
     this.tasks = tasks || [];
     this.sockets = sockets || [];
     this.started = started || false;
@@ -23,14 +25,17 @@ module.exports = class Game {
         }
         player.wasActive = player.active;
         player.active = player.socket && player.socket.connected;
-        // TODO: add debug log for activity check
+        globals.rootIO.of("/debug").emit(`activityCheckAt:${this.hostname}`, {username, active:`${player.active}`, was:`${player.wasActive}`});
         return player.wasActive;
       }).every(active => !active);
       (responseless && ++this.responselessPings) || (this.responselessPings = 0);
       if (this.responselessPings > this.constructor.RESPONSELESS_PING_THRESHOLD) {
-        this.close();
+        return this.close();
       }
-      // TODO: add gameroomio emit player data
+      if (!responseless) {
+        // TODO: add gameroomio emit player data --  this.gameRoomIO.to("players").emit("playerData", { players: this.getPlayerData("GamePrivate") });
+        this.gameRoomIO && this.gameRoomIO.to("players").emit("playerData", { players: this.getPlayerData("GamePrivate") });
+      }
     }, 5000);
   }
 
@@ -61,10 +66,12 @@ module.exports = class Game {
   }
 
   close() {
+    let anySockets = false;
     Object.values(this.players).forEach(player => {
-      player.socket && player.socket.disconnect();
+      player.socket && (anySockets = true) && player.socket.disconnect();
     });
-    // TODO: emit ending this.gameRoomIO.emit("gameEnded");
+    // anySockets && this.gameRoomIO.emit("gameEnded");
+    // TODO: ^ emit ending unnecessary ?? because disconnected
     // TODO: more deletion logic for task sockets?
     delete globals.games[this.hostname];
     clearInterval(this.pingIntervalID);
@@ -86,7 +93,7 @@ module.exports = class Game {
     const newPlayer = new Player({
       username, socketAddress: socketRemoteIP(socket)
     })
-    // TODO: globals.rootIO.of(`/game/${this.hostname}`).emit("playerJoin", newPlayer);
+    this.numActivePlayers() && this.gameRoomIO.to("players").emit("playerJoin", { player: newPlayer.getGamePrivateData() });
     this.players[username] = newPlayer;
   }
 
@@ -99,7 +106,7 @@ module.exports = class Game {
   }
 
   registerPlayerSocket(username, socket) {
-    // TODO: globals.rootIO.of("/debug").emit("debug_info", socket.handshake);
+    globals.rootIO.of("/debug").emit("debug_info", socket.handshake);
     if (!this.hasPlayer(username)) {
       console.log("player register fail -- username not found");
       console.log("\t", username, "|", player.username);
@@ -117,15 +124,15 @@ module.exports = class Game {
       return false;
     }
     console.log("player register success -- \n\t", username, "|", player.username, "\n\t", player.socketAddress, "|", socketRemoteIP(socket), "\n\t", player.active, "|", player.wasActive);
-    // TODO:  player.socket && player.socket.disconnect();
+    player.socket && player.socket.disconnect();
     player.socket = socket;
     player.socketID = socket.id;
-    // TODO:  player.active = socket && socket.connected;
+    this.gameRoomIO = socket.nsp;
+    player.active = socket && socket.connected;
     return true;
   }
 
   unregisterPlayerSocket(username) {
-    // globals.rootIO.of("/debug").emit("debug_info", socket.handshake);
     if (!this.hasPlayer(username)) {
       console.log("player unregister fail -- username not found");
       console.log("\t", username, "|", this.getPlayerUsernames());
@@ -133,10 +140,10 @@ module.exports = class Game {
     }
     const player = this.players[username];
     console.log("player unregister success -- \n\t", username, "|", player.username);
-    // TODO:  player.socket && player.socket.disconnect();
+    player.socket && player.socket.disconnect();
     delete player.socket;
     delete player.socketID;
-    // TODO:  player.active = false;
+    player.active = false;
     if (!this.numActivePlayers()) {
       console.log(`CLOSE GAME: ${this.hostname}| -- all players gone`);
       this.close();
