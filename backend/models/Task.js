@@ -3,13 +3,60 @@ const Schema = mongoose.Schema;
 const schemaToModel = require('.');
 
 const taskSchema = new Schema({
-  raspberryPi: {
-    type: String,
-    required: false
-  },
-  publicID: {
+  taskname: {
     type: String,
     required: true
+  },
+  owner: {
+    type: Schema.Types.ObjectID,
+    ref: 'User',
+    required: true
+  },
+  qrID: {
+    type: String,
+    required: true
+  },
+  protected: {
+    type: Boolean,
+    required: false,
+    default: false
+  },
+  maxTime: {
+    type: Number,
+    required: true,
+    default: 20
+  },
+  physicalDeviceID: {
+    type: String,
+    required: false,
+    default: ''
+  },
+  format: {
+    type: String,
+    required: true,
+    enum: ['common','short','long'],//,'multipart'],
+    default: 'short'
+  },
+  predecessorTasks: {
+    type: [{
+      type: Schema.Types.ObjectID,
+      ref: 'Task',
+    }],
+    required: false,
+    default: []
+  },
+  successorTasks: {
+    type: [{
+      type: Schema.Types.ObjectID,
+      ref: 'Task',
+    }],
+    required: false,
+    default: []
+  },
+  canBeNonVisual: {
+    type: Boolean,
+    required: true,
+    default: true
   }
 }, {
   timestamps: true

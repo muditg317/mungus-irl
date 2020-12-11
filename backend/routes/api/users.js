@@ -1,6 +1,8 @@
-const usersRouter = require('express').Router()
 const authController = require('../../controllers/authController');
 const usersController = require('../../controllers/usersController');
+
+const usersRouter = require('express').Router()
+
 
 usersRouter
   .route('/info/:id')

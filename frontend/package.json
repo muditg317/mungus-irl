@@ -18,6 +18,7 @@
     "jwt-decode": "^3.1.2",
     "query-string": "^6.13.7",
     "react": "^17.0.1",
+    "react-confirm-alert": "^2.6.2",
     "react-dom": "^17.0.1",
     "react-helmet": "^6.1.0",
     "react-redux": "^7.2.2",
@@ -34,7 +35,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "build:css": "postcss src/assets/styles/tailwind.css -o src/assets/styles/index.css",
-    "watch:css": "nodemon --watch src/assets/styles --ignore src/assets/styles/index.css --ext scss,css --exec \"postcss src/assets/styles/tailwind.css -o src/assets/styles/index.css\""
+    "watch:css": "nodemon --watch src/assets/styles --watch tailwind.config.js --ignore src/assets/styles/index.css --ext scss,css --exec \"postcss src/assets/styles/tailwind.css -o src/assets/styles/index.css\""
   },
   "proxy": "http://localhost:8080",
   "eslintConfig": {

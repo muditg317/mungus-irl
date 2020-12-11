@@ -20,6 +20,7 @@ export const setLoggedInUserDataAction = dispatch => (userAuthToken) => {
   axios
     .get(`/api/users/info/${userID}`)
     .then(response => {
+      // console.log(response);
       dispatch({
         type: SET_USER_DATA,
         payload: response.data

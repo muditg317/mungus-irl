@@ -25,6 +25,16 @@ module.exports = {
           '50%': { transform: 'rotate(1deg)' },
         }
       },
+      minHeight: {
+        fit: 'fit-content'
+      },
+      minWidth: {
+        fit: 'fit-content'
+      },
+      width: {
+        fill: '-webkit-fill-available',
+        fit: 'fit-content'
+      },
       zIndex: {
         '-10': '-10',
       },
@@ -35,6 +45,8 @@ module.exports = {
       backgroundColor: ['odd'],
       borderRadius: ['first', 'last'],
       display: ['group-hover'],
+      margin: ['first', 'last'],
+      padding: ['first', 'last'],
       textColor: ['odd'],
     }
   },

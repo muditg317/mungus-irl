@@ -71,7 +71,7 @@ export default function About() {
       log.log(navigator.mediaDevices);
       log.log(navigator.mediaDevices.getUserMedia);
       navigator.mediaDevices
-        .getUserMedia({ video: { facingMode: "environment" } })
+        .getUserMedia({ video: { facingMode: "user" } })
         .then(function(stream) {
           scanning = true;
           qrResult.hidden = true;

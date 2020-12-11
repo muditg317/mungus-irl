@@ -19,7 +19,7 @@ module.exports = (io) => {
   const lobbyIO = io.of('/lobby');
   lobbySockets(io, lobbyIO);
 
-  const gameIO = io.of(/^\/game\/[\w\d]+$/);
+  const gameIO = io.of(/^\/game\/[\w\d\-_]+$/);
   gameSockets(io, gameIO);
 
 

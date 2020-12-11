@@ -33,7 +33,7 @@ module.exports = class Game {
         return this.close();
       }
       if (!responseless) {
-        // TODO: add gameroomio emit player data --  this.gameRoomIO.to("players").emit("playerData", { players: this.getPlayerData("GamePrivate") });
+        // remove lmao i should be sending live updates not timed updates
         this.gameRoomIO && this.gameRoomIO.to("players").emit("playerData", { players: this.getPlayerData("GamePrivate") });
       }
     }, 5000);

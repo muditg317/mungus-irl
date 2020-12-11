@@ -114,3 +114,8 @@ export function handleChange(setter, maxLength) {
     setter(event.target.value);
   }
 }
+
+export function clamp(value, min, max) {
+  value = typeof value !== 'number' ? parseFloat(value) : value;
+  return Math.min(Math.max(value, min), max);
+}

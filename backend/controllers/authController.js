@@ -30,7 +30,7 @@ module.exports = {
 
       const newUser = new User(fieldsFromBody(request.body, User.schema.requiredPaths()));
 
-      const salt = await bcrypt.genSalt(10)
+      const salt = await bcrypt.genSalt(10);
       const hash = await bcrypt.hash(newUser.password, salt);
       newUser.password = hash;
       console.log('gen new user', newUser);
