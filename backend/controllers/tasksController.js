@@ -11,15 +11,34 @@ const validateTaskInput = require('../validation/task');
 const taskPayload = task => ({
   id: task.id,
   taskname: task.taskname,
+  enabled: task.enabled || false,
   // owner: task.owner,
   qrID: task.qrID,
   maxTime: task.maxTime,
-  physical: task.physical,
+  physicalDeviceID: task.physicalDeviceID,
   format: task.format,
   predecessorTasks: task.predecessorTasks.map(predTask => predTask.taskname),
   successorTasks: task.successorTasks.map(succTask => succTask.taskname),
   canBeNonVisual: task.canBeNonVisual
 });
+
+const extractSettings = task => ({
+  taskname: task.taskname,
+  maxTime: task.maxTime,
+  format: task.format,
+  predecessorTasks: task.predecessorTasks.map(predTask => predTask.taskname),
+  successorTasks: task.successorTasks.map(succTask => succTask.taskname),
+  canBeNonVisual: task.canBeNonVisual
+});
+
+const applySettings = (target, settings) => {
+  target.taskname = settings.taskname,
+  target.maxTime = settings.maxTime,
+  target.format = settings.format,
+  target.predecessorTasks = settings.predecessorTasks.map(predTask => predTask.taskname),
+  target.successorTasks = settings.successorTasks.map(succTask => succTask.taskname),
+  target.canBeNonVisual = settings.canBeNonVisual
+};
 
 module.exports = {
   info: async (request, response) => {
@@ -33,19 +52,30 @@ module.exports = {
       if (!user || user.username !== tokenUsername) {
         return response.status(403).json({ authorization: `Invalid auth token` });
       }
-      const tasks = await Promise.all(user.tasks.map(async (taskID) => {
-        return await Task.findById(taskID).maxTime(MONGOOSE_READ_TIMEOUT);
-      }));
-      console.log(tasks);
-      console.log(user);
-      console.log(user.tasks);
+      const userTasks = await Task.findByOwner(user.id).maxTime(MONGOOSE_READ_TIMEOUT);
+      userTasks.forEach(task => {
+        if (user.tasks.includes(task.id)) {
+          task.enabled = true;
+        }
+      });
+      const mobileTasks = await Task.find({
+        '_id': { $in: [...user.tasks] },
+        protected: true,
+        physicalDeviceID: ''
+      }).maxTime(MONGOOSE_READ_TIMEOUT);
+      // const tasks = await Promise.all(user.tasks.map(async (taskID) => {
+      //   return await Task.findById(taskID).maxTime(MONGOOSE_READ_TIMEOUT);
+      // }));
+      // console.log(userTasks);
+      // console.log(user);
+      // console.log(user.tasks);
       // console.log(tasks.map(task => `${task.owner._id}` === `${user.id}`));
       // console.log(user.id, user._id);
-      const userTasks = tasks.filter(task => `${task.owner._id}` === `${user.id}`).map(task => taskPayload(task));
-      const mobileTasks = tasks.filter(task => `${task.owner._id}` !== `${user.id}`).map(task => task.id);
+      const userTasksPayload = userTasks.map(task => taskPayload(task));
+      const mobileTasksPayload = mobileTasks.map(task => task.id);
       return response.status(200).json({
-        userTasks,
-        mobileTasks
+        userTasks: userTasksPayload,
+        mobileTasks: mobileTasksPayload
       });
     } catch (error) {
       console.error(error);
@@ -76,45 +106,73 @@ module.exports = {
         return response.status(403).json({ authorization: `Invalid auth token` });
       }
 
+      // console.log("user task data", userTaskData);
+
       const oldTasks = await Task.findByOwner(user.id).maxTime(MONGOOSE_READ_TIMEOUT);
       // if (tasks.length) {
       //   return response.status(400).json({ qrID: `qrID already exists` });
       // }
 
+      const tasksToCreate = [...userTaskData];
+      const updatedTasks = [];
+      const tasksToDelete = [];
+      oldTasks.forEach(oldTask => {
+        const taskDataIndex = tasksToCreate.findIndex(userTask => userTask.id === oldTask.id);
+        if (taskDataIndex !== -1) {
+          const taskDatum = tasksToCreate.splice(taskDataIndex, 1)[0];
+          applySettings(oldTask, taskDatum);
+          updatedTasks.push(oldTask);
+          // updatedTasks.push({...oldTask, ...extractSettings(userTaskDatum)});
+        } else {
+          tasksToDelete.push(oldTask);
+        }
+      }, []);
+
+
       // TODO: ADD QR ID AND DEVICE ID TO TASK DATA
-      userTaskData.forEach(task => {
+      tasksToCreate.forEach(task => {
         task.qrID = task.qrID || randStr(7);
         task.physicalDeviceID = task.physicalDeviceID || randStr(30, 'aA0$');
       });
-      const newTasks = userTaskData.map(taskDatum => new Task({...taskDatum, owner: user._id}));
+      const newTasks = tasksToCreate.map(taskDatum => new Task({...taskDatum, owner: user._id}));
 
-      const savedTasks = await Promise.all(newTasks.map(async (newTask) => await newTask.save({wtimeout: MONGOOSE_WRITE_TIMEOUT})));
-      console.log('registered', savedTasks);
+      const savedTasks = await Promise.all([...updatedTasks, ...newTasks].map(async (newTask) => await newTask.save({wtimeout: MONGOOSE_WRITE_TIMEOUT})));
+      // console.log('saved tasks', savedTasks);
 
       // TODO: be more efficient than deleting everything lmao
       const deleted = await Task.deleteMany({
-        "_id": { $in: oldTasks.map(task => task._id) },
+        "_id": { $in: tasksToDelete.map(task => task._id) },
         "protected": false
       }, {wtimeout: MONGOOSE_WRITE_TIMEOUT});
-      console.log("TASKS DELETED===", user, deleted, "========Tasks deleted ^^=======");
+      // console.log("TASKS DELETED===", user, deleted, "========Tasks deleted ^^=======");
 
-
-      user.tasks = savedTasks.map(savedTask => savedTask._id);
+      // const userTaskDataIDs = userTaskData.oldTasks.map(task => task.id);
+      const newUserTasks = savedTasks.reduce((filtered, savedTask) => {
+        const userTaskDatum = userTaskData.find(userTask => userTask.taskname === savedTask.taskname && userTask.maxTime === savedTask.maxTime);
+        if (userTaskDatum.enabled) {
+          // console.log(filtered, userTaskDatum);
+          filtered.push(savedTask);
+        }
+        return filtered;
+      }, []);
+      user.tasks = newUserTasks.map(task => task._id);
 
       let mobileTasks;
       if (request.body.mobileTaskIDs) {
         const mobileTaskIDs = JSON.parse(request.body.mobileTaskIDs);
+        // console.log("mobile task IDS!", mobileTaskIDs);
         mobileTasks = await Task.find().where('_id').in(mobileTaskIDs).maxTime(MONGOOSE_READ_TIMEOUT).exec();
         if (!mobileTasks || mobileTasks.length !== mobileTaskIDs.length) {
           return response.status(403).json({ mobileTasks: `ID invalid` });
         }
-        user.tasks = user.tasks.concat(mobileTaskIDs.map(mobileTaskID => mongoose.Types.ObjectId(mobileTaskID)));
+        user.tasks.push(...mobileTaskIDs.map(mobileTaskID => mongoose.Types.ObjectId(mobileTaskID)));
       }
 
+      // console.log("presaving", user, "\npresaved tasks:", user.tasks);
       const savedUser = await user.save({wtimeout: MONGOOSE_WRITE_TIMEOUT});
-      console.log("NEW TASKS UPDATED", savedUser, "=========New tasks updated ^^=====");
+      // console.log("NEW TASKS UPDATED", savedUser, "=========New tasks updated ^^=====");
 
-      const userTasksPayload = savedTasks.map(savedTask => taskPayload(savedTask));
+      const userTasksPayload = newUserTasks.map(savedTask => taskPayload(savedTask));
       const mobileTasksPayload = mobileTasks && mobileTasks.map(mobileTask => mobileTask.id);
       response.json({
         userTasks: userTasksPayload,

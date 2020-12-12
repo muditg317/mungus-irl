@@ -1,5 +1,5 @@
 import React, { useContext, useState, useReducer, useCallback, useEffect, useMemo } from "react";
-// import { useHistory } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { confirmAlert } from 'react-confirm-alert'; // Import
 import 'react-confirm-alert/src/react-confirm-alert.css'; // Import css
@@ -23,7 +23,14 @@ const userTaskListReducer = (state, action) => {
     return state.filter(task => task.id !== deleteID);
   }
   if (create) {
-    return state.concat([{id:`${Math.random()}`.substring(2), taskname:`Task ${state.length+1}`, maxTime:20, format:'short', canBeNonVisual:true}]);
+    return state.concat([{
+      id: `${Math.random()}`.substring(2),
+      taskname: `Task ${state.length+1}`,
+      maxTime: 20,
+      format: 'short',
+      canBeNonVisual: true,
+      enabled: true
+    }]);
   }
   if (updateID) {
     // state.find(task => task.id === updateID)[field] = newValue;
@@ -39,10 +46,8 @@ const TaskManager = () => {
   const updateTaskManagerData = useCallback((...args) => updateTaskManagerDataAction(dispatch)(...args), [dispatch]);
   const [ userData, setUserData ] = useState(state.user);
   const [ userTaskData, updateUserTaskData ] = useReducer(userTaskListReducer, state.taskManager.userTasks || []);
-  const [ mobileTaskData, setMobileTaskData ] = useState(state.taskManager.mobileTasks || []);
-  // const history = useHistory();
-
-  window.userTaskData = userTaskData;
+  const [ mobileTaskIDs, setMobileTaskIDs ] = useState(state.taskManager.mobileTasks || []);
+  const history = useHistory();
 
   useEffect(() => {
     setUserData(state.user);
@@ -63,7 +68,7 @@ const TaskManager = () => {
   }, [state.taskManager.userTasks]);
   useEffect(() => {
     // console.log("update mobile task data");
-    setMobileTaskData(state.taskManager.mobileTasks);
+    setMobileTaskIDs(state.taskManager.mobileTasks);
   }, [state.taskManager.mobileTasks]);
 
   const taskErrorsByIndex = useMemo(() => {
@@ -98,10 +103,12 @@ const TaskManager = () => {
       userTaskData: userTaskData.map(userTask => {
         return userTask;
       }),
-      mobileTaskIDs: mobileTaskData.map(mobileTask => mobileTask)
+      mobileTaskIDs: mobileTaskIDs.map(mobileTask => mobileTask)
     };
-    updateTaskManagerData(payload);
-  }, [userTaskData, mobileTaskData, updateTaskManagerData]);
+    updateTaskManagerData(payload, () => {
+      history.push('/setup-tasks');
+    });
+  }, [userTaskData, mobileTaskIDs, updateTaskManagerData, history]);
 
   // console.log(userTaskData);
 
@@ -118,10 +125,15 @@ const TaskManager = () => {
         </h2>
       </div>
       <div className="w-full h-fill bg-gray-700 p-2">
-        <div className="w-full flex flex-col items-center">
-          <button onClick={saveTasks} className="ml-auto min-w-fit p-2 flex flex-row items-center border border-blue-500 rounded-full hover:border-none hover:bg-blue-500 text-blue-500 hover:text-white">
-            <p className="block mr-2">Save</p><FontAwesomeIcon icon={['far','check-circle']} size='lg' />
-          </button>
+        <div className="container mx-auto flex flex-col items-center">
+          <div className="w-full flex flex-row items-center justify-between">
+            <button onClick={() => history.push('/setup-tasks')} className="mr-auto min-w-fit p-2 flex flex-row items-center border border-blue-500 rounded-full hover:border-none hover:bg-blue-500 text-blue-500 hover:text-white">
+              <p className="block mr-2">Setup Tasks</p><FontAwesomeIcon icon={['fas','cogs']} size='lg' />
+            </button>
+            <button onClick={saveTasks} className="ml-auto min-w-fit p-2 flex flex-row items-center border border-blue-500 rounded-full hover:border-none hover:bg-blue-500 text-blue-500 hover:text-white">
+              <p className="block mr-2">Save</p><FontAwesomeIcon icon={['far','check-circle']} size='lg' />
+            </button>
+          </div>
           <div className="w-full flex flex-row items-center justify-between mb-3">
             <h3 className="w-fill text-center text-lg">Physical Tasks</h3>
           </div>
@@ -139,7 +151,7 @@ const TaskManager = () => {
           <h3 className="w-full text-center mb-3 text-lg">Mobile Tasks</h3>
           <div className="w-full flex flex-col items-center divide-y divide-white">
             {availableMobileTasks.map((taskDatum, index) => {
-              return <MobileTaskDescription key={taskDatum.id} task={taskDatum} selected={mobileTaskData.includes(taskDatum.id)} selectTask={() => setMobileTaskData(mobileTaskData.concat([taskDatum.id]))} unselectTask={() => setMobileTaskData(mobileTaskData.filter(taskID => taskID !== taskDatum.id))} />
+              return <MobileTaskDescription key={taskDatum.id} task={taskDatum} selected={mobileTaskIDs.includes(taskDatum.id)} selectTask={() => setMobileTaskIDs(mobileTaskIDs.concat([taskDatum.id]))} unselectTask={() => setMobileTaskIDs(mobileTaskIDs.filter(taskID => taskID !== taskDatum.id))} />
             })}
           </div>
         </div>

@@ -17,6 +17,7 @@ import Game from 'components/game';
 
 import PrivateRoute from 'components/private-route';
 import TaskManager from 'components/task-manager';
+import ViewQrCodes from 'components/setup-tasks';
 
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
@@ -100,6 +101,9 @@ export default function App(props) {
           </Route>
           <PrivateRoute path='/task-manager'>
             <TaskManager />
+          </PrivateRoute>
+          <PrivateRoute path='/setup-tasks'>
+            <ViewQrCodes />
           </PrivateRoute>
           <Route path='/'>
             <Redirect to='/' />

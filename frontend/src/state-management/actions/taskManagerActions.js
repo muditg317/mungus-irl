@@ -14,7 +14,7 @@ export const pullTaskManagerDataAction = dispatch => (clearErrors = false) => {
   axios
     .get(`/api/tasks/info`)
     .then(response => {
-      console.log(response);
+      // console.log(response);
       dispatch({
         type: SET_TASK_MANAGER_DATA,
         payload: response.data
@@ -25,7 +25,7 @@ export const pullTaskManagerDataAction = dispatch => (clearErrors = false) => {
     });
 };
 
-export const updateTaskManagerDataAction = dispatch => (taskData) => {
+export const updateTaskManagerDataAction = dispatch => (taskData, successCallback) => {
   // console.log(taskData);
   // console.log(JSON.stringify(taskData));
   for (let key in taskData) {
@@ -45,6 +45,7 @@ export const updateTaskManagerDataAction = dispatch => (taskData) => {
         type: SET_TASK_MANAGER_ERROR,
         payload: {}
       });
+      successCallback();
     })
     .catch(err => {
       dispatch({

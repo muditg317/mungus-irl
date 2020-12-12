@@ -26,7 +26,7 @@ export default function NavBar({ onAuthButtonPress }) {
   }, [responsive]);
 
   return (
-    <nav ref={navBarRef} className="flex items-center justify-between flex-wrap bg-black p-3">
+    <nav ref={navBarRef} className="flex items-center justify-between flex-wrap bg-black p-3 z-50">
       <Link to="/" className="flex items-center flex-shrink-0 text-white hover:text-red-700 mr-6">
         <img src={logo} className="fill-current h-12 mr-2" alt="Emerging Leaders logo" />
         <span className="font-semibold text-xl tracking-tight">Mungus IRL</span>
@@ -36,11 +36,16 @@ export default function NavBar({ onAuthButtonPress }) {
           <svg className="fill-current h-3 w-3" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><title>Menu</title><path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z"/></svg>
         </button>
       </div>
-      <div className={`w-full ${responsive ? "block z-70" : "hidden"} flex-grow md:flex md:items-center md:w-auto absolute md:relative top-full md:top-0 bg-black -ml-3 md:ml-0 p-3 md:p-0 pt-0`}>
+      <div className={`w-full ${responsive ? "block z-50" : "hidden"} flex-grow md:flex md:items-center md:w-auto absolute md:relative top-full md:top-0 bg-black -ml-3 md:ml-0 p-3 md:p-0 pt-0`}>
         <div className="text-sm md:flex-grow">
           { isAuthenticated && <>
             <Link to="/task-manager" className="block mt-4 mb-4 md:mb-0 md:inline-block md:mt-0 text-white hover:text-red-700 mr-4">
               Task Manager
+            </Link>
+          </> }
+          { isAuthenticated && <>
+            <Link to="/setup-tasks" className="block mt-4 mb-4 md:mb-0 md:inline-block md:mt-0 text-white hover:text-red-700 mr-4">
+              Setup Tasks
             </Link>
           </> }
           <Link to="/about" className="block mt-4 mb-4 md:mb-0 md:inline-block md:mt-0 text-white hover:text-red-700 mr-4">

@@ -14,6 +14,7 @@ module.exports = {
       },
       height: {
         fill: '-webkit-fill-available',
+        '124': '31rem'
       },
       inset: {
         half: '50%',
@@ -25,11 +26,21 @@ module.exports = {
           '50%': { transform: 'rotate(1deg)' },
         }
       },
+      maxHeight: {
+        '1/2': '50%',
+        '124': '31rem'
+      },
+      maxWidth: {
+        '1/2': '50%'
+      },
       minHeight: {
         fit: 'fit-content'
       },
       minWidth: {
         fit: 'fit-content'
+      },
+      screens: {
+        'print': {'raw': 'print'},
       },
       width: {
         fill: '-webkit-fill-available',
