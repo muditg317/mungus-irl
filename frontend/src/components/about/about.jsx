@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
 import QrScanner from './qr-scanner';
-console.log(QrScanner);
+// console.log(QrScanner);
 
 export default function About() {
   // const [dummy, setDummy] = useState(0);
