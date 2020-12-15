@@ -20,49 +20,49 @@ module.exports = {
       // TODO: ^ add fields about completion and stuff or something
     }));
     const game = new Game({ rootIO, hostname: user.username, tasks });
-    globals.games[game.hostname] = game;
+    globals.games[game.getIndexVariable()] = game;
     socket.to("lobby").emit("newGame", { game: game.getPublicData(false) });
     return game;
   },
-  joinGame: async (rootIO, lobbyIO, socket, callback, hostname, passcode, username) => {
-    if (!globals.games[hostname])
-      throw new Error(`No game hosted by ${hostname}!`);
+  joinGame: async (rootIO, lobbyIO, socket, callback, gameIndex, passcode, username) => {
+    if (!globals.games[gameIndex])
+      throw new Error(`No game with id ${gameIndex}!`);
     username = username.trim && username.trim();
     if (!username || !username.length) {
       throw new Error("Invalid username");
     }
-    const game = globals.games[hostname];
+    const game = globals.games[gameIndex];
     const existingPlayer = game.getPlayer(username);
     let speedyRejoin = false;
     // TODO: do i still want ignore case??
     if (!passcode || (typeof passcode === "string" && game.passcode !== passcode.toLowerCase()))
       throw new Error("Wrong passcode!");
-    else if (typeof passcode === "object" && passcode.asHost) {
-      console.log("attempt speedy rejoin!", "host");
-      speedyRejoin = true;
-      let { id, username: tokenUsername } = verifyJWTtoken(passcode.asHost.token.slice(passcode.asHost.token.indexOf(' ')+1));
-      if (tokenUsername !== username) {
-        throw new Error("Attempt to join with bad host credentials!");
-      }
-      if (username !== hostname) {
-        throw new Error("Attempt to join as host with wrong username!");
-      }
-      let user = await User.findById(id).maxTime(MONGOOSE_READ_TIMEOUT);
-      if (!user)
-        throw new Error("Attempt to join with invalid host credentials!");
-    } else if (typeof passcode === "object" && passcode.rejoining && existingPlayer) {
-      console.log("attempt speedy rejoin!", existingPlayer && {...existingPlayer, socket:existingPlayer.socket?'socket':'none'});
-      speedyRejoin = true;
-      if (existingPlayer.socket && existingPlayer.socketAddress !== socketRemoteIP(socket)) {
-        if (existingPlayer.socket.connected) {
-          throw new Error("Attempt speedy rejoin game when user already active in game");
-        }
-        // TODO: second chance based on network of other players in game
-      }
-      if (existingPlayer.isUnresponsive({strict:true})) {
-        throw new Error("Attempt speedy rejoin game when user has been inactive in game");
-      }
-    }
+    // else if (typeof passcode === "object" && passcode.asHost) {
+    //   console.log("attempt speedy rejoin!", "host");
+    //   speedyRejoin = true;
+    //   let { id, username: tokenUsername } = verifyJWTtoken(passcode.asHost.token.slice(passcode.asHost.token.indexOf(' ')+1));
+    //   if (tokenUsername !== username) {
+    //     throw new Error("Attempt to join with bad host credentials!");
+    //   }
+    //   if (username !== game.hostname) {
+    //     throw new Error("Attempt to join as host with wrong username!");
+    //   }
+    //   let user = await User.findById(id).maxTime(MONGOOSE_READ_TIMEOUT);
+    //   if (!user)
+    //     throw new Error("Attempt to join with invalid host credentials!");
+    // } else if (typeof passcode === "object" && passcode.rejoining && existingPlayer) {
+    //   console.log("attempt speedy rejoin!", existingPlayer && {...existingPlayer, socket:existingPlayer.socket?'socket':'none'});
+    //   speedyRejoin = true;
+    //   if (existingPlayer.socket && existingPlayer.socketAddress !== socketRemoteIP(socket)) {
+    //     if (existingPlayer.socket.connected) {
+    //       throw new Error("Attempt speedy rejoin game when user already active in game");
+    //     }
+    //     // TODO: second chance based on network of other players in game
+    //   }
+    //   if (existingPlayer.isUnresponsive({strict:true})) {
+    //     throw new Error("Attempt speedy rejoin game when user has been inactive in game");
+    //   }
+    // }
     console.log(`trying to join with existing player u:${username}|player:${existingPlayer}|list:${game.getPlayerUsernames()}|`);
     if (existingPlayer && (existingPlayer.isActive({loose:true})) && !speedyRejoin) {
       throw new Error(`${username} is already in the game!`);

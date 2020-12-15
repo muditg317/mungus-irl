@@ -82,6 +82,44 @@ module.exports = {
       return response.status(503).json({ error });
     }
   },
+  mobileTaskInfo: async (request, response) => {
+    try {
+      // if (!request.headers.authorization) {
+      //   return response.status(403).json({ error: 'No credentials sent!' });
+      // }
+      // const { id: ownerID, username: tokenUsername } = verifyJWTtoken(request.headers.authorization.slice(request.headers.authorization.indexOf(' ')+1));
+      // const user = await User.findById(ownerID).maxTime(MONGOOSE_READ_TIMEOUT);
+      // console.log(ownerID, tokenUsername, user);
+      // if (!user || user.username !== tokenUsername) {
+      //   return response.status(403).json({ authorization: `Invalid auth token` });
+      // }
+      // const userTasks = await Task.findByOwner(user.id).maxTime(MONGOOSE_READ_TIMEOUT);
+      // userTasks.forEach(task => {
+      //   if (user.tasks.includes(task.id)) {
+      //     task.enabled = true;
+      //   }
+      // });
+      const mobileTasks = await Task.find({
+        protected: true,
+        physicalDeviceID: ''
+      }).maxTime(MONGOOSE_READ_TIMEOUT);
+      // const tasks = await Promise.all(user.tasks.map(async (taskID) => {
+      //   return await Task.findById(taskID).maxTime(MONGOOSE_READ_TIMEOUT);
+      // }));
+      // console.log(userTasks);
+      // console.log(user);
+      // console.log(user.tasks);
+      // console.log(tasks.map(task => `${task.owner._id}` === `${user.id}`));
+      // console.log(user.id, user._id);
+      const mobileTasksPayload = mobileTasks.map(task => taskPayload(task));
+      return response.status(200).json({
+        mobileTaskInfo: mobileTasksPayload
+      });
+    } catch (error) {
+      console.error(error);
+      return response.status(503).json({ error });
+    }
+  },
   update: async (request, response) => {
     try {
       if (!request.headers.authorization) {
@@ -162,10 +200,10 @@ module.exports = {
         const mobileTaskIDs = JSON.parse(request.body.mobileTaskIDs);
         // console.log("mobile task IDS!", mobileTaskIDs);
         mobileTasks = await Task.find().where('_id').in(mobileTaskIDs).maxTime(MONGOOSE_READ_TIMEOUT).exec();
-        if (!mobileTasks || mobileTasks.length !== mobileTaskIDs.length) {
+        if (!mobileTasks) { // || mobileTasks.length !== mobileTaskIDs.length) {
           return response.status(403).json({ mobileTasks: `ID invalid` });
         }
-        user.tasks.push(...mobileTaskIDs.map(mobileTaskID => mongoose.Types.ObjectId(mobileTaskID)));
+        user.tasks.push(...mobileTasks.map(mobileTask => mobileTask._id));
       }
 
       // console.log("presaving", user, "\npresaved tasks:", user.tasks);

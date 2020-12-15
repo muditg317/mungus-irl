@@ -6,32 +6,32 @@ module.exports = {
   use: (socket, next) => {
     try {
       console.log(`SOCKET-GAME-${socket.nsp.name}: PLAYER - ${socket.id}|${socketRemoteIP(socket)}`);
-      const hostname = socket.nsp.hostname || socket.nsp.name.substring(6);
-      if (!globals.games[hostname]) {
-        const err = new Error("Invalid game host!");
-        err.data = { content: "You must use the host's exact username to join" };
+      const gameIndex = socket.nsp.gameIndex || socket.nsp.name.substring(6);
+      if (!globals.games[gameIndex]) {
+        const err = new Error("Invalid game!");
+        err.data = { code: "NO GAME", content: "You must use the exact passcode to join" };
         return next(err);
       }
       const gameToken = socket.handshake.query.gameToken;
-      if (globals.games[hostname].gameToken !== gameToken) {
+      if (globals.games[gameIndex].gameToken !== gameToken) {
         const err = new Error("Invalid game token!");
         err.data = { content: "Please try to rejoin the game" };
         return next(err);
       }
       const username = socket.handshake.query.username;
-      if (!globals.games[hostname].hasPlayer(username)) {
+      if (!globals.games[gameIndex].hasPlayer(username)) {
         const err = new Error("Invalid username!");
         err.data = { content: "Please try to rejoin the game" };
         return next(err);
       }
-      socket.nsp.hostname = hostname;
-      let socketSuccess = globals.games[hostname].registerPlayerSocket(username, socket);
+      socket.nsp.gameIndex = gameIndex;
+      let socketSuccess = globals.games[gameIndex].registerPlayerSocket(username, socket);
       if (!socketSuccess) {
         const err = new Error("Failed to register player in game");
         err.data = { content: "Illegal request to join" };
         return next(err);
       }
-      console.log(`SOCKET-GAME-${socket.nsp.hostname}|SUCCESS: PLAYER - ${socket.id}|${socketRemoteIP(socket)}`);
+      console.log(`SOCKET-GAME-${socket.nsp.gameIndex}|SUCCESS: PLAYER - ${socket.id}|${socketRemoteIP(socket)}`);
       next();
     } catch (error) {
       console.log("UNEXPECTED ERROR");
@@ -44,10 +44,10 @@ module.exports = {
   onConnection: (socket) => {
     console.log(`game socket connection: ${socket.id}|${socketRemoteIP(socket)}`);
     const gameRoomIO = socket.nsp;
-    const hostname = gameRoomIO.hostname = gameRoomIO.hostname || socket.nsp.name.substring(6);
+    const gameIndex = gameRoomIO.gameIndex = gameRoomIO.gameIndex || socket.nsp.name.substring(6);
     const username = socket.handshake.query.username;
-    const game = globals.games[hostname];
-    console.log(`new user(${username}) joined game ${hostname}: ${socket.id}`);
+    const game = globals.games[gameIndex];
+    console.log(`new user(${username}) joined game ${gameIndex}: ${socket.id}`);
 
     try {
       // let socketSuccess = game.registerPlayerSocket(username, socket);
@@ -73,7 +73,7 @@ module.exports = {
 
     socket.on("leaveGame", (data, ack) => {
       const { username: leavingUser } = data;
-      console.log("leave game request", hostname, username, leavingUser);
+      console.log("leave game request", gameIndex, username, leavingUser);
       if (username !== leavingUser) {
         return;
       }
@@ -93,7 +93,7 @@ module.exports = {
       if (tokenUsername !== username) {
         return;//throw new Error("Attempt to join with bad host credentials!");
       }
-      if (username !== hostname) {
+      if (username !== game.hostname) {
         return;//throw new Error("Attempt to join as host with wrong username!");
       }
       let user = await User.findById(id).maxTime(MONGOOSE_READ_TIMEOUT);

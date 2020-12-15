@@ -1,8 +1,8 @@
 import React, { useContext, useState, useReducer, useCallback, useEffect, useMemo } from "react";
 import { useHistory } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { confirmAlert } from 'react-confirm-alert'; // Import
-import 'react-confirm-alert/src/react-confirm-alert.css'; // Import css
+import { confirmAlert } from 'react-confirm-alert';
+import 'react-confirm-alert/src/react-confirm-alert.css';
 
 
 import { isEmpty, upperFirstChar } from 'utils';
@@ -10,7 +10,7 @@ import { isEmpty, upperFirstChar } from 'utils';
 import { store } from 'state-management';
 import { pullTaskManagerDataAction, updateTaskManagerDataAction } from "state-management/actions/taskManagerActions";
 
-import availableMobileTasks from 'components/mobile-tasks';
+// import availableMobileTasks from 'components/mobile-tasks';
 
 import { UserTaskDescription, MobileTaskDescription } from './task-description';
 
@@ -29,14 +29,15 @@ const userTaskListReducer = (state, action) => {
       maxTime: 20,
       format: 'short',
       canBeNonVisual: true,
-      enabled: true
+      enabled: true,
+      saved: false
     }]);
   }
   if (updateID) {
     // state.find(task => task.id === updateID)[field] = newValue;
     // return state;
     // ^^ does not update state because of Object.is
-    return state.map(task => task.id !== updateID ? task : ({ ...task, [field]: newValue }));
+    return state.map(task => task.id !== updateID ? task : ({ ...task, [field]: newValue, saved: false }));
   }
 };
 
@@ -48,6 +49,36 @@ const TaskManager = () => {
   const [ userTaskData, updateUserTaskData ] = useReducer(userTaskListReducer, state.taskManager.userTasks || []);
   const [ mobileTaskIDs, setMobileTaskIDs ] = useState(state.taskManager.mobileTasks || []);
   const history = useHistory();
+
+  const anyUnsaved = useMemo(() =>
+    userTaskData.some(task => !task.saved)
+    || mobileTaskIDs.some(id => !state.taskManager.mobileTasks.includes(id))
+    || state.taskManager.mobileTasks.some(id => !mobileTaskIDs.includes(id))
+  , [userTaskData, mobileTaskIDs, state.taskManager.mobileTasks]);
+
+  useEffect(() => {
+    const beforeUnload = (event) => {
+      if (anyUnsaved) {
+        // if (window.confirm(`Are you sure you exit without saving your tasks?`)) {
+        //   console.log("ignore warning!");
+        // } else {
+          event.preventDefault();
+          event.returnValue = '';
+          return '';
+        // }
+      }
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+    // const unblock = history.block(tx => {
+    //   console.log(tx);
+    //   const url = tx.pathname;
+    //
+    // });
+    return () => {
+      window.removeEventListener('beforeunload', beforeUnload);
+      // unblock();
+    };
+  }, [history, anyUnsaved]);
 
   useEffect(() => {
     setUserData(state.user);
@@ -106,14 +137,14 @@ const TaskManager = () => {
       mobileTaskIDs: mobileTaskIDs.map(mobileTask => mobileTask)
     };
     updateTaskManagerData(payload, () => {
-      history.push('/setup-tasks');
+      // history.push('/setup-tasks');
     });
-  }, [userTaskData, mobileTaskIDs, updateTaskManagerData, history]);
+  }, [userTaskData, mobileTaskIDs, updateTaskManagerData]);
 
   // console.log(userTaskData);
 
   return (
-    <div className="h-full flex flex-col items-center text-white">
+    <div className="h-full w-screen bg-red-700 flex flex-col items-center text-white">
       <div className="w-full h-20 min-h-fit bg-gray-900 flex items-center justify-center p-4">
         <h1 className="text-3xl font-bold min-h-fit max-w-full">
           {`Welcome ${userData.username}!`}
@@ -125,19 +156,19 @@ const TaskManager = () => {
         </h2>
       </div>
       <div className="w-full h-fill bg-gray-700 p-2">
-        <div className="container mx-auto flex flex-col items-center">
+        <div className="container mx-auto bg-gray-700 flex flex-col items-center">
           <div className="w-full flex flex-row items-center justify-between">
             <button onClick={() => history.push('/setup-tasks')} className="mr-auto min-w-fit p-2 flex flex-row items-center border border-blue-500 rounded-full hover:border-none hover:bg-blue-500 text-blue-500 hover:text-white">
               <p className="block mr-2">Setup Tasks</p><FontAwesomeIcon icon={['fas','cogs']} size='lg' />
             </button>
-            <button onClick={saveTasks} className="ml-auto min-w-fit p-2 flex flex-row items-center border border-blue-500 rounded-full hover:border-none hover:bg-blue-500 text-blue-500 hover:text-white">
+            {anyUnsaved && <button onClick={saveTasks} className="ml-auto min-w-fit p-2 flex flex-row items-center border border-blue-500 rounded-full hover:border-none hover:bg-blue-500 text-blue-500 hover:text-white">
               <p className="block mr-2">Save</p><FontAwesomeIcon icon={['far','check-circle']} size='lg' />
-            </button>
+            </button>}
           </div>
           <div className="w-full flex flex-row items-center justify-between mb-3">
             <h3 className="w-fill text-center text-lg">Physical Tasks</h3>
           </div>
-          <div className="w-full mb-2 flex flex-col items-center divide-y divide-white">
+          <div className="w-full mb-2 bg-gray-700 flex flex-col items-center divide-y divide-white">
             {userTaskData.map((taskDatum, index, arr) => {
               // console.log("user task", index, taskDatum, arr);
               return <UserTaskDescription key={taskDatum.id} task={taskDatum} errors={taskErrorsByIndex && taskErrorsByIndex[index]} deleteTask={() => deleteTask(taskDatum)} updateTask={updateUserTaskData} />
@@ -147,10 +178,10 @@ const TaskManager = () => {
             <p className="hidden md:block mr-2">Add</p><FontAwesomeIcon icon={['fas','plus-circle']} size='lg' />
           </button>
         </div>
-        <div className="w-full">
-          <h3 className="w-full text-center mb-3 text-lg">Mobile Tasks</h3>
-          <div className="w-full flex flex-col items-center divide-y divide-white">
-            {availableMobileTasks.map((taskDatum, index) => {
+        <div className="w-full bg-gray-700 pb-20">
+          <h3 className="w-full bg-gray-700 text-center mb-3 text-lg">Mobile Tasks</h3>
+          <div className="w-full bg-gray-700 flex flex-col items-center divide-y divide-white">
+            {state.taskManager.mobileTaskInfo.map((taskDatum, index) => {
               return <MobileTaskDescription key={taskDatum.id} task={taskDatum} selected={mobileTaskIDs.includes(taskDatum.id)} selectTask={() => setMobileTaskIDs(mobileTaskIDs.concat([taskDatum.id]))} unselectTask={() => setMobileTaskIDs(mobileTaskIDs.filter(taskID => taskID !== taskDatum.id))} />
             })}
           </div>

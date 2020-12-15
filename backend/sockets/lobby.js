@@ -29,7 +29,7 @@ module.exports = (rootIO, lobbyIO) => {
         try {
           const game = await lobbyController.createGame(rootIO, lobbyIO, socket, data.token);
           // have the socket join the room they've just created.
-          await lobbyController.joinGame(rootIO, lobbyIO, socket, callback, game.hostname, game.passcode, game.hostname);
+          await lobbyController.joinGame(rootIO, lobbyIO, socket, callback, game.getIndexVariable(), game.passcode, game.hostname);
         } catch (error) {
           console.error(error);
           callback && callback({code: "ERROR", message: `${error.name}: ${error.message}`});
@@ -39,10 +39,12 @@ module.exports = (rootIO, lobbyIO) => {
 
     socket.on("joinGame", async (data, callback) => {
       try {
-        const { hostname, passcode, username } = data;
-        if (!globals.games[hostname])
-          throw new Error("Invalid game host!");
-        await lobbyController.joinGame(rootIO, lobbyIO, socket, callback, hostname, passcode, username);
+        const { passcode, username } = data;
+        const gameToJoin = Object.values(globals.games).find(game => game.passcode === passcode);
+        if (!gameToJoin)
+          throw new Error("Invalid passcode!");
+        const gameIndex = gameToJoin.getIndexVariable();
+        await lobbyController.joinGame(rootIO, lobbyIO, socket, callback, gameIndex, passcode, username);
       } catch (error) {
         console.error(error);
         callback && callback({code: "ERROR", message: `${error.name}: ${error.message}`});

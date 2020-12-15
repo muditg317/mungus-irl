@@ -31,7 +31,7 @@ const UserTaskDescription = ({ task, errors, deleteTask, updateTask, ...props })
   const taskError = useMemo(() => errors || {}, [errors]);
   const color = useMemo(() => task.enabled ? "green" : "red", [task.enabled]);
   return (
-    <div className="w-full py-2 first:pt-0 last:pb-0 flex flex-row items-center">
+    <div className="w-full bg-gray-700 py-2 first:pt-0 last:pb-0 flex flex-row items-center">
       <div className="w-full pr-2">
         <div className="w-full flex flex-wrap flex-row items-center justify-start mb-1">
           <label className="mr-1 text-lg">Name:</label>

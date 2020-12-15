@@ -1,5 +1,6 @@
 import axios from 'axios';
 import {
+  SET_MOBILE_TASK_INFO,
   SET_TASK_MANAGER_DATA,
   SET_TASK_MANAGER_ERROR
 } from './types';
@@ -12,8 +13,21 @@ export const pullTaskManagerDataAction = dispatch => (clearErrors = false) => {
     });
   }
   axios
+    .get(`/api/tasks/mobile-task-info`)
+    .then(response => {
+      // console.log(response);
+      dispatch({
+        type: SET_MOBILE_TASK_INFO,
+        payload: response.data
+      });
+    })
+    .catch(err => {
+      console.log(err.response.data);
+    });
+  axios
     .get(`/api/tasks/info`)
     .then(response => {
+      response.data.userTasks.forEach(task => (task.saved = true));
       // console.log(response);
       dispatch({
         type: SET_TASK_MANAGER_DATA,
@@ -37,6 +51,7 @@ export const updateTaskManagerDataAction = dispatch => (taskData, successCallbac
     .post(`/api/tasks/update`, taskData)
     .then(response => {
       // console.log(response);
+      response.data.userTasks.forEach(task => (task.saved = true));
       dispatch({
         type: SET_TASK_MANAGER_DATA,
         payload: response.data
@@ -48,6 +63,7 @@ export const updateTaskManagerDataAction = dispatch => (taskData, successCallbac
       successCallback();
     })
     .catch(err => {
+      console.log(err);
       dispatch({
         type: SET_TASK_MANAGER_ERROR,
         payload: err.response.data

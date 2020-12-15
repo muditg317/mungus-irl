@@ -1,11 +1,22 @@
 import React, { useEffect, useState, useCallback, useContext, useRef, useMemo } from 'react';
 import { Redirect, useLocation, useRouteMatch } from "react-router-dom";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { confirmAlert } from 'react-confirm-alert';
+import 'react-confirm-alert/src/react-confirm-alert.css';
+import QRCode from 'qrcode';
+
 import socketIOClient from 'socket.io-client';
+
+import { Sender as SonicSender, Receiver as SonicReceiver } from 'sonicnet';
 
 import { store } from 'state-management';
 import { checkValidAuthToken } from 'utils';
 
-// import { useForceUpdate, useEffectDebugger } from 'hooks';
+const qrOpts = {
+  errorCorrectionLevel: 'H',
+  version: 3,
+  scale: 6
+};
 
 export default function Game() {
   // console.log("render game");
@@ -14,17 +25,17 @@ export default function Game() {
   // const history = useHistory();
   const match = useRouteMatch("/game/:hostname");
   const username = location.username || localStorage.getItem("username");
-  const gameToken = location.gameToken || (JSON.parse(sessionStorage.getItem("gameToken")) || {}).gameToken;
+  const gameToken = location.gameToken || (JSON.parse(localStorage.getItem("gameToken")) || {}).gameToken;
   const hostname = match.params.hostname;
   const [ joinError, setJoinError ] = useState('');
 
   const [ latency, setLatency ] = useState();
 
-  // const [ socket, setSocket ] = useState();
   const socketRef = useRef();
-  window.socketRef = socketRef;
   const pingTimeoutRef = useRef();
   const [ leaving, setLeaving ] = useState(false);
+
+  const [ qrCodeDataURL, setQrCodeDataURL ] = useState();
 
   const [ players, setPlayers ] = useState({});
   const [ passcode, setPasscode ] = useState('');
@@ -36,7 +47,6 @@ export default function Game() {
       return existingData;
     });
   }, []);
-
   const setGameData = useCallback((gameData) => {
     const { hostname: gameHost, players: gamePlayers, passcode: gamePasscode } = gameData;
     if (gameHost && gameHost !== hostname) {
@@ -45,6 +55,11 @@ export default function Game() {
     gamePlayers && setPlayers(gamePlayers);
     gamePasscode && setPasscode(gamePasscode);
   }, [hostname]);
+
+  const sonicSenderRef = useRef();
+  const sonicReceiverRef = useRef();
+  window.sonicSenderRef = sonicSenderRef;
+
 
   useEffect(() => {
     if (!hostname || !gameToken) {
@@ -58,21 +73,16 @@ export default function Game() {
       socketRef.current = socketIOClient(`/game/${hostname}`, { forceNew: true, query: { gameToken, username, clientType: "PLAYER" } });
 
     socketRef.current.on("connect", data => {
-      console.log("connected to server", data||'');
-      // sessionStorage.setItem("gameToken", JSON.stringify({gameToken, hostname}));
+      // console.log("connected to server", data||'');
+      // localStorage.setItem("gameToken", JSON.stringify({gameToken, hostname}));
     });
     socketRef.current.on("connect_error", err => {
-      sessionStorage.removeItem("gameToken");
+      localStorage.removeItem("gameToken");
+      if (err.data && err.data.code === "NO GAME") {
+        return setLeaving(true);
+      };
       setJoinError(`${err.message} | ${err.data && err.data.content}`);
     });
-
-    // setInterval(() => {
-    //   socketRef.current.emit('pingus', {time: Date.now()}, (pingusTime) => {
-    //       const lat = Date.now() - pingusTime;
-    //       setLatency(lat);
-    //       // console.log("LATENCY:", lat);
-    //   });
-    // }, 2000);
 
 
     socketRef.current.on("gameData", data => {
@@ -90,7 +100,7 @@ export default function Game() {
     socketRef.current.on('gameStarted', data => {
     });
     socketRef.current.on('gameEnded', data => {
-      sessionStorage.removeItem("gameToken");
+      localStorage.removeItem("gameToken");
       setLeaving(true);
     });
 
@@ -98,11 +108,11 @@ export default function Game() {
       console.log("socket disconnected: ", reason);
       switch (reason) {
         case "io server disconnect":
-          sessionStorage.removeItem("gameToken");
+          localStorage.removeItem("gameToken");
           setLeaving(true);
           break;
         case "io client disconnect":
-          sessionStorage.removeItem("gameToken");
+          localStorage.removeItem("gameToken");
           setLeaving(true);
           break;
         default:
@@ -124,24 +134,24 @@ export default function Game() {
     // setSocket(socketRef.current);
     return () => {
       socketRef.current && socketRef.current.disconnect();
-      // sessionStorage.removeItem("gameToken");
+      // localStorage.removeItem("gameToken");
     };
   }, [hostname, username, gameToken, setGameData, setPlayerData], ['hostname', 'username', 'gameToken']);
 
   useEffect(() => {
     const checkLatency = () => {
       clearTimeout(pingTimeoutRef.current);
-      if (socketRef.current.connected) {
-        console.log("check latency");
+      if (socketRef.current && socketRef.current.connected) {
+        // console.log("check latency");
         // console.log(require('util').inspect(socketRef.current, { depth: 1 }));
-        console.log(`socketRef.current nsp:${socketRef.current.nsp}| id:${socketRef.current.id}| conn:${socketRef.current.connected}`);
+        // console.log(`socketRef.current nsp:${socketRef.current.nsp}| id:${socketRef.current.id}| conn:${socketRef.current.connected}`);
         socketRef.current.emit('pingus', {time: Date.now()}, (pingusTime) => {
             const lat = Date.now() - pingusTime;
             setLatency(lat);
-            console.log("LATENCY:", lat);
+            // console.log("LATENCY:", lat);
         });
       } else {
-        console.log("not connected");
+        // console.log("not connected");
       }
       pingTimeoutRef.current = setTimeout(checkLatency, 2000);
     };
@@ -151,37 +161,91 @@ export default function Game() {
     };
   }, []);
 
+  const connStateDependent = useCallback((array) => {
+    return array[(socketRef.current && socketRef.current.connected) ? 0 : ((socketRef.current) ? 1 : 2)];
+  }, []);
+
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const qrDataURL = await QRCode.toDataURL(username, qrOpts);
+        setQrCodeDataURL(qrDataURL);
+      } catch (error) {
+        console.error(error);
+      } finally {
+
+      }
+    })();
+  }, [username]);
+
+  useEffect(() => {
+    console.log("create sonic socket");
+    // console.log(SonicSender,SonicReceiver);
+
+
+    if (!sonicSenderRef.current)
+      sonicSenderRef.current = new SonicSender();
+
+    if (sonicReceiverRef.current)
+      return;
+
+    sonicReceiverRef.current = new SonicReceiver();
+
+    sonicReceiverRef.current.on('message', message => {
+      console.log(message);
+      setPlayerData('audio',{content:message});
+    });
+    sonicReceiverRef.current.start();
+
+    return () => {
+      sonicReceiverRef.current && sonicReceiverRef.current.stop();
+    };
+  }, []);
+
   const leaveGame = useCallback((event) => {
-    console.log("attempt leave");
-    socketRef.current && socketRef.current.emit("leaveGame", { username }, result => {
-      sessionStorage.removeItem("gameToken");
-      setLeaving(true);
+    confirmAlert({
+      title: `Leave Game`,
+      message: 'Are you sure you want to leave the game?',
+      buttons: [
+        {
+          label: 'Yes, leave',
+          onClick: () => {
+            // console.log("attempt leave");
+            socketRef.current && socketRef.current.emit("leaveGame", { username }, result => {
+              localStorage.removeItem("gameToken");
+              setLeaving(true);
+            });
+          }
+        },
+        {
+          label: 'Stay here'
+        }
+      ]
     });
   }, [username]);
 
   const endGame = useCallback((event) => {
-    console.log("attempt end");
-    socketRef.current && socketRef.current.emit("endGame", { auth: checkValidAuthToken() });
+    confirmAlert({
+      title: `End Game`,
+      message: 'Are you sure you want to end the game for everyone?',
+      buttons: [
+        {
+          label: 'Yes, end game',
+          onClick: () => {
+            // console.log("attempt end");
+            socketRef.current && socketRef.current.emit("endGame", { auth: checkValidAuthToken() });
+          }
+        },
+        {
+          label: 'Cancel'
+        }
+      ]
+    });
   }, []);
 
-  const bueno = socketRef.current && socketRef.current.connected;
-  useEffect(() => {
-    if (!bueno) {
-      console.log("sad");
-    }
-  }, [bueno]);
-
-  useEffect(() => {
-    return ((leav) => {
-      if (leav || leaving) {
-        console.log("leaving! clear token");
-        sessionStorage.removeItem("gameToken");
-      }
-    }).bind(null, leaving);
-  }, [leaving]);
-
   if (leaving) {
-    sessionStorage.removeItem("gameToken");
+    localStorage.removeItem("gameToken");
     return <Redirect to={{
       pathname: `/lobby`,
       leftGame: true
@@ -202,18 +266,20 @@ export default function Game() {
       <div className="w-full h-fill flex-grow bg-gray-800 text-white">
         <div className="container mx-auto p-5">
           <div className="flex flex-col divide-y divide-white">
-            <div className={`w-full h-20 ${(socketRef.current && socketRef.current.connected) ? 'bg-green' : ((socketRef.current) ? 'bg-yellow' : 'bg-red')}-500`}>
-              {socketRef.current && `socketRef.current nsp:${socketRef.current.nsp}| id:${socketRef.current.id}| conn:${socketRef.current.connected}`}
+            <div className="w-full h-10 flex flex-row items-center justify-between">
+              <div className={`p-1 rounded-md flex flex-row items-center bg-${connStateDependent(['green','yellow','red'])}-500`}>
+                <FontAwesomeIcon icon={['fas','signal']} size='lg' />{connStateDependent([<p className={`${typeof latency !== "number" && 'hidden'} ml-1 w-12 min-w-max text-right`}>{latency && `${latency}ms`}</p>,<p className="hidden md:block ml-2">'Connecting'</p>,<p className="hidden md:block ml-2">'Disconnected'</p>])}
+              </div>
+              <button className="p-1 rounded-md border" onClick={leaveGame}>LEAVE!</button>
+              { state.auth.isAuthenticated && (state.auth.user.username === hostname) && hostname === username &&
+                <button className="p-1 rounded-md border" onClick={endGame}>END GAME</button>
+              }
             </div>
-            <button onClick={leaveGame}>LEAVE!</button>
-            { state.auth.isAuthenticated && (state.auth.user.username === hostname) && hostname === username &&
-              <button onClick={endGame}>END GAME</button>
-            }
             <p>
               host: {hostname}<br/>
               username: {username} <br/>
               latency: {latency}ms <br/>
-              passcode: {passcode}<br/>
+            passcode: <pre>{passcode}</pre><br/>
               Players:
             </p>
             <ul>
@@ -227,9 +293,6 @@ export default function Game() {
           </div>
         </div>
       </div>
-      {
-        // showPasscodeModal && <PasscodeModal {...{shown: showPasscodeModal, username, onExit: closePasscodeModal}} />
-      }
     </div>
     );
 }

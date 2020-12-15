@@ -41,7 +41,7 @@ module.exports = (rootIO, debugIO) => {
         debugInfo.push("GAME IO INFO:")
         Object.values(globals.games).forEach(game => {
           if (!game.gameRoomIO) {
-            return debugInfo.push(`no gameRoomIO for game:${game.hostname}`);
+            return debugInfo.push(`no gameRoomIO for game:${game.getIndexVariable()}`);
           }
           debugInfo.push(`gameRoomIO |${game.gameRoomIO.name}`);
           game.gameRoomIO.sockets.forEach(socket => {

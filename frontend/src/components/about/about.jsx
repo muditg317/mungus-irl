@@ -13,13 +13,14 @@ export default function About() {
     // }
     const log = document.getElementById('log');
     log.log = (...args) => {
-      args.forEach(arg => {
-        let p = document.createElement('p');
-        p.innerText = arg.toString();
-        log.appendChild(p);
-        console.log(arg);
-        console.log(JSON.stringify(arg));
-      });
+      console.log(...args);
+      // args.forEach(arg => {
+      //   let p = document.createElement('p');
+      //   p.innerText = arg.toString();
+      //   log.appendChild(p);
+      //   console.log(arg);
+      //   console.log(JSON.stringify(arg));
+      // });
     };
     const video = document.getElementById('qr-video');
 

@@ -1,5 +1,7 @@
 html,
 html>body,
 html>body>#root {
-  height: 100%;
+  height: -webkit-fill-available;
+  min-height: max-content;
+  background-color: rgb(55, 65, 81);
 }

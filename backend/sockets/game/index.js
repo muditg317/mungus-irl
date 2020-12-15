@@ -52,8 +52,4 @@ module.exports = (rootIO, gameRooms) => {
 
     }
   });
-  // TODO: fix below lmao
-  setInterval(() => {
-    gameRooms.emit("im gay");
-  }, 5000);
 };

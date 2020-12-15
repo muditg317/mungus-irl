@@ -88,7 +88,7 @@ export default function App(props) {
         <title>Mungus IRL</title>
       </Helmet>
       <AppHeader {...{onAuthButtonPress}} />
-      <main className='flex-grow'>
+      <main className='flex-grow z-10'>
         <Switch>
           <Route path='/about'>
             <About />

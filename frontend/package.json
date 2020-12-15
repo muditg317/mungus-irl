@@ -28,6 +28,7 @@
     "redux": "^4.0.5",
     "redux-thunk": "^2.3.0",
     "socket.io-client": "^3.0.3",
+    "sonicnet": "^0.2.7",
     "web-vitals": "^1.0.1"
   },
   "scripts": {

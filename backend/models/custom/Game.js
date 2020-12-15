@@ -7,6 +7,7 @@ module.exports = class Game {
 
   constructor({ hostname, tasks, sockets, started, players, passcode, gameToken } = {}) {
     this.hostname = hostname;
+    // this.roomID = randStr(5, 'a0');
     // TODO: add gameIO
     // this.gameRoomIO = globals.rootIO.of(`/game/${hostname}`);
     // TODO: NO! BAD! NEVER MAKE NAMESPACE WITH of() !!!!!!!
@@ -25,7 +26,7 @@ module.exports = class Game {
         }
         player.wasActive = player.active;
         player.active = player.socket && player.socket.connected;
-        globals.rootIO.of("/debug").emit(`activityCheckAt:${this.hostname}`, {username, active:`${player.active}`, was:`${player.wasActive}`});
+        globals.rootIO.of("/debug").emit(`activityCheckAt:${this.getIndexVariable()}`, {username, active:`${player.active}`, was:`${player.wasActive}`});
         return player.wasActive;
       }).every(active => !active);
       (responseless && ++this.responselessPings) || (this.responselessPings = 0);
@@ -37,6 +38,10 @@ module.exports = class Game {
         this.gameRoomIO && this.gameRoomIO.to("players").emit("playerData", { players: this.getPlayerData("GamePrivate") });
       }
     }, 5000);
+  }
+
+  getIndexVariable() {
+    return this.hostname;
   }
 
   getPlayerUsernames() {
@@ -70,10 +75,11 @@ module.exports = class Game {
     Object.values(this.players).forEach(player => {
       player.socket && (anySockets = true) && player.socket.disconnect();
     });
+    console.log("GAME CLOSE",this.getIndexVariable());
     // anySockets && this.gameRoomIO.emit("gameEnded");
     // TODO: ^ emit ending unnecessary ?? because disconnected
     // TODO: more deletion logic for task sockets?
-    delete globals.games[this.hostname];
+    delete globals.games[this.getIndexVariable()];
     clearInterval(this.pingIntervalID);
     globals.rootIO.of("/lobby").emit("removeGame", { game:this.getPublicData() });
   }
@@ -145,9 +151,10 @@ module.exports = class Game {
     delete player.socketID;
     player.active = false;
     if (!this.numActivePlayers()) {
-      console.log(`CLOSE GAME: ${this.hostname}| -- all players gone`);
+      console.log(`CLOSE GAME: ${this.getIndexVariable()}| -- all players gone`);
       this.close();
     }
+    this.sendPlayerUpdate(player);
     return true;
   }
 
@@ -160,6 +167,10 @@ module.exports = class Game {
     // TODO: add more remove logic (unassigning tasks and stuff, close socket)
     delete this.players[username];
     return player;
+  }
+
+  sendPlayerUpdate(player) {
+    this.gameRoomIO && this.gameRoomIO.to("players").emit("playerInfo", player.getGamePrivateData());
   }
 
   numActivePlayers() {

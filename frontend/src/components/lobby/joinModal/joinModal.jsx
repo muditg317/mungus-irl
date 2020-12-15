@@ -6,7 +6,7 @@ import { handleChange } from 'utils';
 // import { store } from 'state-management';
 
 const JoinModal = ({ shown, username, setUsername, attemptJoin, onExit }) => {
-  const { hostname, joinError } = (typeof shown) === "string" ? { hostname: shown } : shown;
+  const { joinError } = (typeof shown) === "string" ? {} : shown;
   console.log(`joinError: ${joinError}\nusername:${username}`);
   shown = !!shown;
   // const { state, dispatch } = useContext(store);
@@ -63,8 +63,8 @@ const JoinModal = ({ shown, username, setUsername, attemptJoin, onExit }) => {
   }, [onExit, shown]);
 
   const submitJoinRequest = useCallback(() => {
-    attemptJoin(hostname, passcode);
-  }, [attemptJoin, hostname, passcode]);
+    attemptJoin(passcode);
+  }, [attemptJoin, passcode]);
 
   const handleEnterPressed = useCallback(event => {
     if (event.key === 'Enter') {
@@ -72,6 +72,11 @@ const JoinModal = ({ shown, username, setUsername, attemptJoin, onExit }) => {
       event.preventDefault();
     }
   }, [submitJoinRequest]);
+
+  console.log(shown);
+  if (!shown) {
+    return;
+  }
 
   return (
     <div className={`modal ${shown ? 'modal-active' : 'modal-inactive'}`}>
@@ -86,7 +91,7 @@ const JoinModal = ({ shown, username, setUsername, attemptJoin, onExit }) => {
 
         <div className='modal-content'>
           <div className='modal-header'>
-            <p className='modal-title'>Join {`${hostname}'s`} game</p>
+            <p className='modal-title'>Join game</p>
             <div onClick={onExit} className='modal-modal-close'>
               <FontAwesomeIcon icon={['far','times-circle']} size='lg' />
             </div>

@@ -8,6 +8,10 @@ tasksRouter
   .get(tasksController.info);
 
 tasksRouter
+  .route('/mobile-task-info')
+  .get(tasksController.mobileTaskInfo);
+
+tasksRouter
   .route('/update')
   .post(tasksController.update);
 
