@@ -58,7 +58,7 @@ require('./sockets')(io);
 if (NODE_ENV !== 'development') {
   setInterval(() => {
     console.log("GAME INFO:");
-    console.log(require('util').inspect(globals.games, { depth: 4 }));
+    console.log(require('util').inspect(globals.games, { depth: 3 }));
   }, 30000);
   setInterval(() => {
     console.log("IO info");

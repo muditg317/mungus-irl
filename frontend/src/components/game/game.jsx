@@ -19,9 +19,9 @@ const qrOpts = {
 };
 
 const sonicCommOpts = {
-  charDuration: 0.25,
-  freqMin: 7500,
-  freqMax: 8000
+  // charDuration: 0.25,
+  // freqMin: 7500,
+  // freqMax: 8000
 };
 
 export default function Game() {
@@ -65,6 +65,7 @@ export default function Game() {
   const sonicSenderRef = useRef();
   const sonicReceiverRef = useRef();
   window.sonicSenderRef = sonicSenderRef;
+  window.sonicReceiverRef = sonicReceiverRef;
 
 
   useEffect(() => {
@@ -296,6 +297,9 @@ export default function Game() {
                 })
               }
             </ul>
+            <button onClick={() => sonicSenderRef.current && sonicSenderRef.current.send('hello')}>sonic message!</button>
+            <input type='number' className="text-black" onChange={(event) => sonicSenderRef.current.codec.freqMin = sonicReceiverRef.current.coder.freqMin = parseInt(event.target.value)}/>
+            <input type='number' className="text-black" onChange={(event) => sonicSenderRef.current.codec.freqMax = sonicReceiverRef.current.coder.freqMax = parseInt(event.target.value)}/>
           </div>
         </div>
       </div>
