@@ -21,7 +21,8 @@ const qrOpts = {
 const sonicCommOpts = {
   // charDuration: 0.25,
   // freqMin: 7500,
-  // freqMax: 8000
+  // freqMax: 8000,
+  alphabet: '0123456789#'
 };
 
 export default function Game() {
@@ -62,6 +63,7 @@ export default function Game() {
     gamePasscode && setPasscode(gamePasscode);
   }, [hostname]);
 
+  const [characters,setCharacters] = useState([]);
   const sonicSenderRef = useRef();
   const sonicReceiverRef = useRef();
   window.sonicSenderRef = sonicSenderRef;
@@ -201,7 +203,20 @@ export default function Game() {
 
     sonicReceiverRef.current.on('message', message => {
       console.log(message);
-      setPlayerData('audio',{content:message});
+      setCharacters(chars => {
+        chars.push({id:`${Math.random()}`.substring(2),data:message});
+        // chars[`${Math.random()}`.substring(2)] = {message}
+        return chars;
+      });
+      // setPlayerData('audio',{content:message});
+    });
+    sonicReceiverRef.current.on('character', char => {
+      console.log(char);
+      setCharacters(chars => {
+        chars.push({id:`${Math.random()}`.substring(2),data:char});
+        return chars;
+      });
+      // setPlayerData('audio',{content:message});
     });
     sonicReceiverRef.current.start();
 
@@ -297,9 +312,19 @@ export default function Game() {
                 })
               }
             </ul>
-            <button onClick={() => sonicSenderRef.current && sonicSenderRef.current.send('hello')}>sonic message!</button>
+            <ul>
+              {
+                characters.map(entry => {
+                  const { id, data } = entry;
+                  return <li key={id}>{`${JSON.stringify(data)}`}</li>
+                })
+              }
+            </ul>
+
+            <button onClick={() => sonicSenderRef.current && sonicSenderRef.current.send(`${(Date.now()%10)*11111}`, ()=>console.log('sent'))}>sonic message!</button>
             <input type='number' className="text-black" onChange={(event) => sonicSenderRef.current.codec.freqMin = sonicReceiverRef.current.coder.freqMin = parseInt(event.target.value)}/>
             <input type='number' className="text-black" onChange={(event) => sonicSenderRef.current.codec.freqMax = sonicReceiverRef.current.coder.freqMax = parseInt(event.target.value)}/>
+            <input type='text' className="text-black" onChange={(event) => sonicSenderRef.current.codec.alphabet = sonicReceiverRef.current.coder.alphabet = ('^~'+event.target.value+'$')}/>
           </div>
         </div>
       </div>
