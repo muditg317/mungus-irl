@@ -71,7 +71,6 @@ export default function App(props) {
   }, [state.auth.isAuthenticated, history, logoutUser]);
 
   const openAuthModal = useCallback((isRegistered, redirectPath) => {
-    console.log("open auth modal");
     setRegistered(isRegistered);
     setShowAuthModal(true);
     setAuthSuccessRedirect(redirectPath || "");

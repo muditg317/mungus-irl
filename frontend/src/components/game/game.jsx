@@ -18,6 +18,12 @@ const qrOpts = {
   scale: 6
 };
 
+const sonicCommOpts = {
+  charDuration: 0.25,
+  freqMin: 7500,
+  freqMax: 8000
+};
+
 export default function Game() {
   // console.log("render game");
   const { state, dispatch } = useContext(store);
@@ -185,12 +191,12 @@ export default function Game() {
 
 
     if (!sonicSenderRef.current)
-      sonicSenderRef.current = new SonicSender();
+      sonicSenderRef.current = new SonicSender(sonicCommOpts);
 
     if (sonicReceiverRef.current)
       return;
 
-    sonicReceiverRef.current = new SonicReceiver();
+    sonicReceiverRef.current = new SonicReceiver(sonicCommOpts);
 
     sonicReceiverRef.current.on('message', message => {
       console.log(message);
@@ -201,7 +207,7 @@ export default function Game() {
     return () => {
       sonicReceiverRef.current && sonicReceiverRef.current.stop();
     };
-  }, []);
+  }, [setPlayerData]);
 
   const leaveGame = useCallback((event) => {
     confirmAlert({
