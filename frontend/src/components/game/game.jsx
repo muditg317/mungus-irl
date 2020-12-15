@@ -7,7 +7,7 @@ import QRCode from 'qrcode';
 
 import socketIOClient from 'socket.io-client';
 
-import { Sender as SonicSender, Receiver as SonicReceiver } from 'sonicnet';
+import { SonicSender, SonicReceiver } from 'polyfills/sonicnet';
 
 import { store } from 'state-management';
 import { checkValidAuthToken } from 'utils';

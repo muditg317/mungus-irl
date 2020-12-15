@@ -23,6 +23,8 @@ const AuthModal = ({ shown, registered: isRegistered, onExit, authSuccessRedirec
   const history = useHistory();
   const location = useLocation();
 
+  console.log("auth modal", shown);
+
   useEffect(() => {
     setRegistered(isRegistered);
   }, [isRegistered]);
@@ -117,8 +119,9 @@ const AuthModal = ({ shown, registered: isRegistered, onExit, authSuccessRedirec
     registered ? sendLoginRequest() : sendRegisterRequest();
   }, [registered, sendLoginRequest, sendRegisterRequest]);
 
+  console.log("showing modal");
   return (
-    <div className={`modal ${shown ? 'modal-active' : 'modal-inactive'}`}>
+    <div className={`modal ${shown ? 'modal-active' : 'modal-inactive'} z-100`}>
       <div className='modal-overlay' onClick={checkOverlayClick} ref={modalOverlayRef}></div>
 
       <div className='modal-container' ref={modalContainerRef} >

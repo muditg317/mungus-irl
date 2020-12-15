@@ -10,9 +10,6 @@ import JoinModal from './joinModal';
 
 import banner from 'assets/images/mungus-banner.jpg';
 
-!window.AudioContext && (window.AudioContext = window.webkitAudioContext);
-
-
 export default function Lobby({ openAuthModal }) {
   // console.log("render lobby");
   const { state, dispatch } = useContext(store);
