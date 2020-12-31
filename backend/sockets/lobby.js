@@ -40,7 +40,7 @@ module.exports = (rootIO, lobbyIO) => {
     socket.on("joinGame", async (data, callback) => {
       try {
         const { passcode, username } = data;
-        const gameToJoin = Object.values(globals.games).find(game => game.passcode === passcode);
+        const gameToJoin = Object.values(globals.games).find(game => game.passcode === passcode.toLowerCase());
         if (!gameToJoin)
           throw new Error("Invalid passcode!");
         const gameIndex = gameToJoin.getIndexVariable();

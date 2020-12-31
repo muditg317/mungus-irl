@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { SECRET_OR_KEY, MONGOOSE_READ_TIMEOUT, MONGOOSE_WRITE_TIMEOUT } = require('../config/env');
-const { promiseTimeout, fieldsFromBody } = require('../utils');
+const { promiseTimeout, fieldsFromObject } = require('../utils');
 
 // Load input validation
 const validateRegisterInput = require('../validation/register');
@@ -28,7 +28,7 @@ module.exports = {
         return response.status(400).json({ username: 'Username already exists' });
       }
 
-      const newUser = new User(fieldsFromBody(request.body, User.schema.requiredPaths()));
+      const newUser = new User(fieldsFromObject(request.body, User.schema.requiredPaths()));
 
       const salt = await bcrypt.genSalt(10);
       const hash = await bcrypt.hash(newUser.password, salt);

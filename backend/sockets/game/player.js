@@ -3,7 +3,7 @@ const { MONGOOSE_READ_TIMEOUT } = require('../../config/env');
 const User = require('../../models/User');
 
 module.exports = {
-  use: (socket, next) => {
+  use: async (socket, next) => {
     try {
       console.log(`SOCKET-GAME-${socket.nsp.name}: PLAYER - ${socket.id}|${socketRemoteIP(socket)}`);
       const gameIndex = socket.nsp.gameIndex || socket.nsp.name.substring(6);
@@ -12,24 +12,40 @@ module.exports = {
         err.data = { code: "NO GAME", content: "You must use the exact passcode to join" };
         return next(err);
       }
+      const game = globals.games[gameIndex];
       const gameToken = socket.handshake.query.gameToken;
-      if (globals.games[gameIndex].gameToken !== gameToken) {
+      if (game.gameToken !== gameToken) {
         const err = new Error("Invalid game token!");
         err.data = { content: "Please try to rejoin the game" };
         return next(err);
       }
       const username = socket.handshake.query.username;
-      if (!globals.games[gameIndex].hasPlayer(username)) {
+      if (!game.hasPlayer(username)) {
         const err = new Error("Invalid username!");
         err.data = { content: "Please try to rejoin the game" };
         return next(err);
       }
       socket.nsp.gameIndex = gameIndex;
-      let socketSuccess = globals.games[gameIndex].registerPlayerSocket(username, socket);
+      let socketSuccess = game.registerPlayerSocket(username, socket);
       if (!socketSuccess) {
         const err = new Error("Failed to register player in game");
         err.data = { content: "Illegal request to join" };
         return next(err);
+      }
+      if (socket.handshake.query.authenticated) {
+        // console.log('has token', socket.handshake.query);
+        // console.log(require('util').inspect(socket.handshake.query.authToken, { depth: null }));
+        console.log('authenticated');
+        const { token, decoded } = socket.handshake.query;
+        let { id, username: tokenUsername } = verifyJWTtoken(token.slice(token.indexOf(' ')+1));
+        if (tokenUsername === username && username === game.hostname) {
+          console.log('good token');
+          let user = await User.findById(id).maxTime(MONGOOSE_READ_TIMEOUT);
+          if (user && user.username === tokenUsername)
+            console.log('valid user');
+            game.hostSocketID = socket.id;
+            socket.isHost = true;
+        }
       }
       console.log(`SOCKET-GAME-${socket.nsp.gameIndex}|SUCCESS: PLAYER - ${socket.id}|${socketRemoteIP(socket)}`);
       next();
@@ -42,29 +58,16 @@ module.exports = {
     }
   },
   onConnection: (socket) => {
+    socket.join("players");
+    socket.isHost ? socket.join("host") : socket.join("nonHostPlayers");
     console.log(`game socket connection: ${socket.id}|${socketRemoteIP(socket)}`);
     const gameRoomIO = socket.nsp;
     const gameIndex = gameRoomIO.gameIndex = gameRoomIO.gameIndex || socket.nsp.name.substring(6);
     const username = socket.handshake.query.username;
     const game = globals.games[gameIndex];
-    console.log(`new user(${username}) joined game ${gameIndex}: ${socket.id}`);
-
-    try {
-      // let socketSuccess = game.registerPlayerSocket(username, socket);
-      // if (!socketSuccess) {
-      //   throw new Error("Failed to register socket");
-      // }
-      // console.log("socketSuccess!",socket.id);
-    } catch (error) {
-      console.error(error);
-      socket.volatile.emit("error", "failed to register socket");
-      return socket.disconnect(true);
-    } finally {
-
-    }
-
-    socket.join("players");
     const player = game.players[username];
+    console.log(`new user(${username}) connected to game ${gameIndex}: ${socket.id}`);
+
 
     socket.on("pingus", (data, ack) => {
       globals.rootIO.of("/debug").emit(`pingTo${gameRoomIO.name}`, {username, active:player.active||'undefined', was:player.wasActive||'undefined'});
@@ -102,15 +105,43 @@ module.exports = {
       game.close();
     })
 
+    socket.onAny((event, ...args) => {
+      if (socket.eventNames().includes(event))
+        return;
+      console.log(`got ${event}`, ...args);
+    });
+
     socket.on("disconnect", reason => {
       console.log(`SOCKET-GAME-${gameRoomIO.name} EXIT (${reason}): ${socket.id}`);
       game.unregisterPlayerSocket(username);
       // socket.leave("players");
     });
 
+    socket.on("updateReadyState", data => {
+      const { ready } = data;
+      game.setReadyState(player, ready);
+    });
+
+
+
+
+    if (socket.isHost) {
+      socket.on("updateRule", data => {
+        const { ruleName, oldValue, newValue } = data;
+        if (ruleName in game.rules && game.rules[ruleName].value === oldValue) {
+          game.updateRule(ruleName, newValue);
+        }
+      });
+      socket.on("startGame", data => {
+        game.startGame();
+      });
+    }
+    // console.log(socket.isHost ? "SOCKET HOST" : "not host socket");
+
+
     // console.log({ player: player.getGamePrivateData() });
     // TODO: \/ replace belowwith playerConnect or something??
     // gameRoomIO.to("players").emit("playerJoin", { player: player.getGamePrivateData() });
-    socket.emit("gameData", { game: game.getGamePrivateData() });
+    socket.emit("gameData", { game: socket.isHost ? game.getHostData() : game.getUserPrivateData(username) });
   }
 };

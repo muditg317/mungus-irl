@@ -1,16 +1,23 @@
-import React, { useEffect, useState, useCallback, useContext, useRef, useMemo } from 'react';
-import { Redirect, useLocation, useRouteMatch } from "react-router-dom";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { confirmAlert } from 'react-confirm-alert';
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useContext,
+  useRef,
+  useMemo
+} from 'react';
+import {Redirect, useLocation, useRouteMatch} from "react-router-dom";
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {confirmAlert} from 'react-confirm-alert';
 import 'react-confirm-alert/src/react-confirm-alert.css';
 import QRCode from 'qrcode';
 
 import socketIOClient from 'socket.io-client';
 
-import { SonicSender, SonicReceiver } from 'polyfills/sonicnet';
+import WaitingRoom from './waitingRoom';
 
-import { store } from 'state-management';
-import { checkValidAuthToken } from 'utils';
+import {store} from 'state-management';
+import {checkValidAuthToken} from 'utils';
 
 const qrOpts = {
   errorCorrectionLevel: 'H',
@@ -18,68 +25,84 @@ const qrOpts = {
   scale: 6
 };
 
-const sonicCommOpts = {
-  // charDuration: 0.25,
-  // freqMin: 7500,
-  // freqMax: 8000,
-  alphabet: '0123456789#'
-};
-
 export default function Game() {
   // console.log("render game");
-  const { state, dispatch } = useContext(store);
+  const {state, dispatch} = useContext(store);
   const location = useLocation();
   // const history = useHistory();
   const match = useRouteMatch("/game/:hostname");
   const username = location.username || localStorage.getItem("username");
   const gameToken = location.gameToken || (JSON.parse(localStorage.getItem("gameToken")) || {}).gameToken;
   const hostname = match.params.hostname;
-  const [ joinError, setJoinError ] = useState('');
+  const [joinError, setJoinError] = useState('');
 
-  const [ latency, setLatency ] = useState();
+  const [latency, setLatency] = useState();
 
   const socketRef = useRef();
   const pingTimeoutRef = useRef();
-  const [ leaving, setLeaving ] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
-  const [ qrCodeDataURL, setQrCodeDataURL ] = useState();
+  const [qrCodeDataURL, setQrCodeDataURL] = useState();
 
-  const [ players, setPlayers ] = useState({});
-  const [ passcode, setPasscode ] = useState('');
-  const setPlayerData = useCallback((username, player) => {
+  const [passcode, setPasscode] = useState('');
+  const [players, setPlayers] = useState({});
+  const setPlayerDatum = useCallback((username, player) => {
     setPlayers(existingData => {
-      if (player) {
-        existingData[username] = player;
-      }
-      return existingData;
+      return {
+        ...existingData,
+        [username]: player
+      };
     });
   }, []);
+  const [ rules, setRules ] = useState({});
+  const setRuleDatum = useCallback((ruleName, rule) => {
+    setRules(existingData => {
+      return {
+        ...existingData,
+        [ruleName]: rule
+      };
+    });
+  }, []);
+  const [ tasksStatus, setTasksStatus ] = useState({});
+  const setTasksStatusDatum = useCallback((taskname, task) => {
+    setTasksStatus(existingData => {
+      return {
+        ...existingData,
+        [taskname]: task
+      };
+    });
+  });
+  const [ started, setStarted ] = useState(false);
   const setGameData = useCallback((gameData) => {
-    const { hostname: gameHost, players: gamePlayers, passcode: gamePasscode } = gameData;
+    const { hostname: gameHost, passcode: gamePasscode, players: gamePlayers, rules: gameRules, tasks: gameTasks, started: gameStarted } = gameData;
     if (gameHost && gameHost !== hostname) {
       return setJoinError("Bad server data | Please try to rejoin the game");
     }
-    gamePlayers && setPlayers(gamePlayers);
     gamePasscode && setPasscode(gamePasscode);
+    gamePlayers && setPlayers(gamePlayers);
+    gameRules && setRules(gameRules);
+    gameTasks && setTasksStatus(gameTasks);
+    gameStarted !== undefined && setStarted(gameStarted);
   }, [hostname]);
-
-  const [characters,setCharacters] = useState([]);
-  const sonicSenderRef = useRef();
-  const sonicReceiverRef = useRef();
-  window.sonicSenderRef = sonicSenderRef;
-  window.sonicReceiverRef = sonicReceiverRef;
-
 
   useEffect(() => {
     if (!hostname || !gameToken) {
       return;
     }
 
-    console.log("create socket", hostname, username, gameToken);
-    console.log(`/game/${hostname}`, { forceNew: true, query: { gameToken, username, clientType: "PLAYER" } });
+    // console.log("create socket", hostname, username, gameToken);
+    // console.log(`/game/${hostname}`, { forceNew: true, query: { gameToken, username, clientType: "PLAYER" } });
     // TODO: use client type -- socketRef.current = socketIOClient(`/game/${hostname}`, { forceNew: true, query: { gameToken, username, clientType: "PLAYER" } }).connect();
     if (!socketRef.current)
-      socketRef.current = socketIOClient(`/game/${hostname}`, { forceNew: true, query: { gameToken, username, clientType: "PLAYER" } });
+      socketRef.current = socketIOClient(`/game/${hostname}`, {
+        forceNew: true,
+        query: {
+          gameToken,
+          username,
+          ...checkValidAuthToken(),
+          clientType: "PLAYER"
+        }
+      });
 
     socketRef.current.on("connect", data => {
       // console.log("connected to server", data||'');
@@ -93,20 +116,27 @@ export default function Game() {
       setJoinError(`${err.message} | ${err.data && err.data.content}`);
     });
 
-
     socketRef.current.on("gameData", data => {
       data && data.game && setGameData(data.game);
     });
     socketRef.current.on('playerJoin', data => {
-      setPlayerData(data.player.username, data.player);
+      setPlayerDatum(data.player.username, data.player);
     });
-    socketRef.current.on('playerData', data => {
+    socketRef.current.on('allPlayersData', data => {
       setPlayers(data.players);
     });
+    socketRef.current.on('playerInfo', data => {
+      setPlayerDatum(data.player.username, data.player);
+    });
     socketRef.current.on('playerLeave', data => {
-      setPlayerData(data.player.username, undefined);
+      setPlayerDatum(data.player.username, undefined);
+    });
+    socketRef.current.on('ruleUpdate', data => {
+      // console.log('receive rule update', data);
+      setRuleDatum(data.ruleName, data.rule);
     });
     socketRef.current.on('gameStarted', data => {
+      setStarted(true);
     });
     socketRef.current.on('gameEnded', data => {
       localStorage.removeItem("gameToken");
@@ -125,6 +155,7 @@ export default function Game() {
           setLeaving(true);
           break;
         default:
+          console.log("socket disconnected for unknown reason:", reason);
           break;
       }
     });
@@ -135,17 +166,26 @@ export default function Game() {
     // socketRef.current.prependAny((event, ...args) => {
     //   console.log(`got ${event}`);
     // });
-    socketRef.current.onAny((event, ...args) => {
+    socketRef.current.prependAny((event, ...args) => {
+      // if (socketRef.current.eventNames().includes(event))
+      //   return;
       console.log(`got ${event}`);
     });
     // console.log(socket);
     // socketRef.current.emit("test", {yeet:"yeet"});
     // setSocket(socketRef.current);
-    return () => {
+    return() => {
       socketRef.current && socketRef.current.disconnect();
       // localStorage.removeItem("gameToken");
     };
-  }, [hostname, username, gameToken, setGameData, setPlayerData], ['hostname', 'username', 'gameToken']);
+  }, [
+    hostname,
+    username,
+    gameToken,
+    setGameData,
+    setPlayerDatum,
+    setRuleDatum
+  ], ['hostname', 'username', 'gameToken']);
 
   useEffect(() => {
     const checkLatency = () => {
@@ -154,10 +194,12 @@ export default function Game() {
         // console.log("check latency");
         // console.log(require('util').inspect(socketRef.current, { depth: 1 }));
         // console.log(`socketRef.current nsp:${socketRef.current.nsp}| id:${socketRef.current.id}| conn:${socketRef.current.connected}`);
-        socketRef.current.emit('pingus', {time: Date.now()}, (pingusTime) => {
-            const lat = Date.now() - pingusTime;
-            setLatency(lat);
-            // console.log("LATENCY:", lat);
+        socketRef.current.emit('pingus', {
+          time: Date.now()
+        }, (pingusTime) => {
+          const lat = Date.now() - pingusTime;
+          setLatency(lat);
+          // console.log("LATENCY:", lat);
         });
       } else {
         // console.log("not connected");
@@ -165,15 +207,35 @@ export default function Game() {
       pingTimeoutRef.current = setTimeout(checkLatency, 2000);
     };
     checkLatency();
-    return () => {
+    return() => {
       clearTimeout(pingTimeoutRef.current);
     };
   }, []);
 
   const connStateDependent = useCallback((array) => {
-    return array[(socketRef.current && socketRef.current.connected) ? 0 : ((socketRef.current) ? 1 : 2)];
+    return array[
+      (socketRef.current && socketRef.current.connected)
+        ? 0
+        : (
+          (socketRef.current)
+          ? 1
+          : 2)
+    ];
   }, []);
 
+  const updateReadyState = useCallback((ready) => {
+    // console.log('set ready state',ready);
+    socketRef.current && socketRef.current.emit('updateReadyState', {ready});
+  }, []);
+
+  const updateRule = useCallback((ruleName, oldValue, newValue) => {
+    // console.log('update rule',ruleName, oldValue, newValue);
+    socketRef.current && socketRef.current.emit('updateRule', {ruleName, oldValue, newValue});
+  }, []);
+
+  const startGame = useCallback(() => {
+    socketRef.current && socketRef.current.emit('startGame', {});
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -182,48 +244,9 @@ export default function Game() {
         setQrCodeDataURL(qrDataURL);
       } catch (error) {
         console.error(error);
-      } finally {
-
-      }
+      } finally {}
     })();
   }, [username]);
-
-  useEffect(() => {
-    console.log("create sonic socket");
-    // console.log(SonicSender,SonicReceiver);
-
-
-    if (!sonicSenderRef.current)
-      sonicSenderRef.current = new SonicSender(sonicCommOpts);
-
-    if (sonicReceiverRef.current)
-      return;
-
-    sonicReceiverRef.current = new SonicReceiver(sonicCommOpts);
-
-    sonicReceiverRef.current.on('message', message => {
-      console.log(message);
-      setCharacters(chars => {
-        chars.push({id:`${Math.random()}`.substring(2),data:message});
-        // chars[`${Math.random()}`.substring(2)] = {message}
-        return chars;
-      });
-      // setPlayerData('audio',{content:message});
-    });
-    sonicReceiverRef.current.on('character', char => {
-      console.log(char);
-      setCharacters(chars => {
-        chars.push({id:`${Math.random()}`.substring(2),data:char});
-        return chars;
-      });
-      // setPlayerData('audio',{content:message});
-    });
-    sonicReceiverRef.current.start();
-
-    return () => {
-      sonicReceiverRef.current && sonicReceiverRef.current.stop();
-    };
-  }, [setPlayerData]);
 
   const leaveGame = useCallback((event) => {
     confirmAlert({
@@ -234,13 +257,14 @@ export default function Game() {
           label: 'Yes, leave',
           onClick: () => {
             // console.log("attempt leave");
-            socketRef.current && socketRef.current.emit("leaveGame", { username }, result => {
+            socketRef.current && socketRef.current.emit("leaveGame", {
+              username
+            }, result => {
               localStorage.removeItem("gameToken");
               setLeaving(true);
             });
           }
-        },
-        {
+        }, {
           label: 'Stay here'
         }
       ]
@@ -256,10 +280,9 @@ export default function Game() {
           label: 'Yes, end game',
           onClick: () => {
             // console.log("attempt end");
-            socketRef.current && socketRef.current.emit("endGame", { auth: checkValidAuthToken() });
+            socketRef.current && socketRef.current.emit("endGame", {auth: checkValidAuthToken()});
           }
-        },
-        {
+        }, {
           label: 'Cancel'
         }
       ]
@@ -269,65 +292,47 @@ export default function Game() {
   if (leaving) {
     localStorage.removeItem("gameToken");
     return <Redirect to={{
-      pathname: `/lobby`,
-      leftGame: true
-    }}/>
+        pathname: `/lobby`,
+        leftGame: true
+      }}/>
   }
 
   if (joinError || !hostname || !gameToken) {
     return <Redirect to={{
-      pathname: `/lobby`,
-      hostname,
-      username,
-      joinError
-    }}/>
+        pathname: `/lobby`,
+        hostname,
+        username,
+        joinError
+      }}/>
   }
 
-  return (
-    <div className="h-full flex flex-col items-center">
-      <div className="w-full h-fill flex-grow bg-gray-800 text-white">
-        <div className="container mx-auto p-5">
-          <div className="flex flex-col divide-y divide-white">
-            <div className="w-full h-10 flex flex-row items-center justify-between">
-              <div className={`p-1 rounded-md flex flex-row items-center bg-${connStateDependent(['green','yellow','red'])}-500`}>
-                <FontAwesomeIcon icon={['fas','signal']} size='lg' />{connStateDependent([<p className={`${typeof latency !== "number" && 'hidden'} ml-1 w-12 min-w-max text-right`}>{latency && `${latency}ms`}</p>,<p className="hidden md:block ml-2">'Connecting'</p>,<p className="hidden md:block ml-2">'Disconnected'</p>])}
-              </div>
-              <button className="p-1 rounded-md border" onClick={leaveGame}>LEAVE!</button>
-              { state.auth.isAuthenticated && (state.auth.user.username === hostname) && hostname === username &&
-                <button className="p-1 rounded-md border" onClick={endGame}>END GAME</button>
+  return (<div className="h-full flex flex-col items-center">
+    <div className="w-full h-fill flex-grow bg-gray-800 text-white">
+      <div className="container h-full mx-auto p-5">
+        <div className="h-full flex flex-col divide-y divide-white">
+          <div className="flex flex-row items-center justify-center -mb-0.5">
+            <p className="text-lg font-semibold mr-2">Room code:</p>
+            <pre className="text-lg font-semibold">{passcode}</pre>
+          </div>
+          <div className="w-full h-10 py-1 flex flex-row items-center justify-between">
+            <div className={`p-1 rounded-md flex flex-row items-center bg-${connStateDependent(['green', 'yellow', 'red'])}-500`}>
+              <FontAwesomeIcon icon={['fas', 'signal']} size='lg'/>{
+                connStateDependent([
+                  <p className={`${typeof latency !== "number" && 'hidden'} ml-1 w-12 min-w-max text-right`}>{latency && `${latency}ms`}</p>,
+                  <p className="hidden md:block ml-2">Connecting</p>,
+                  <p className="hidden md:block ml-2">Disconnected</p>
+                ])
               }
             </div>
-            <p>
-              host: {hostname}<br/>
-              username: {username} <br/>
-              latency: {latency}ms <br/>
-            passcode: <pre>{passcode}</pre><br/>
-              Players:
-            </p>
-            <ul>
-              {
-                Object.entries(players).map(entry => {
-                  const [ username, player ] = entry;
-                  return <li key={username}>{`${username}: ${JSON.stringify(player)}`}</li>
-                })
-              }
-            </ul>
-            <ul>
-              {
-                characters.map(entry => {
-                  const { id, data } = entry;
-                  return <li key={id}>{`${JSON.stringify(data)}`}</li>
-                })
-              }
-            </ul>
-
-            <button onClick={() => sonicSenderRef.current && sonicSenderRef.current.send(`${(Date.now()%10)*11111}`, ()=>console.log('sent'))}>sonic message!</button>
-            <input type='number' className="text-black" onChange={(event) => sonicSenderRef.current.codec.freqMin = sonicReceiverRef.current.coder.freqMin = parseInt(event.target.value)}/>
-            <input type='number' className="text-black" onChange={(event) => sonicSenderRef.current.codec.freqMax = sonicReceiverRef.current.coder.freqMax = parseInt(event.target.value)}/>
-            <input type='text' className="text-black" onChange={(event) => sonicSenderRef.current.codec.alphabet = sonicReceiverRef.current.coder.alphabet = ('^~'+event.target.value+'$')}/>
+            <button className="p-1 rounded-md border" onClick={leaveGame}>LEAVE!</button>
+            {state.auth.isAuthenticated && (state.auth.user.username === hostname) && hostname === username && <button className="p-1 rounded-md border" onClick={endGame}>END GAME</button>}
           </div>
+          { !started
+            ? <WaitingRoom { ...{players, username, hostname, rules, tasksStatus} } toggleReadyState={() => updateReadyState(!players[username].ready)} updateRule={username === hostname && updateRule} startGame={username === hostname && startGame}/>
+            : <div></div>
+          }
         </div>
       </div>
     </div>
-    );
+  </div>);
 }

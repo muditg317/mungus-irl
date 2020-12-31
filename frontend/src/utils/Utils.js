@@ -78,6 +78,10 @@ export function upperFirstChar(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
+export function upperFirstCharOnly(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+}
+
 export function setAuthToken(token) {
   if (token) {
     // Apply authorization token to every request if logged in

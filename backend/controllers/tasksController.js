@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const { SECRET_OR_KEY, MONGOOSE_READ_TIMEOUT, MONGOOSE_WRITE_TIMEOUT } = require('../config/env');
-const { promiseTimeout, fieldsFromBody, verifyJWTtoken, randStr } = require('../utils');
+const { promiseTimeout, fieldsFromObject, verifyJWTtoken, randStr } = require('../utils');
 const User = require('../models/User');
 const Task = require('../models/Task');
 const validateTaskInput = require('../validation/task');
@@ -187,10 +187,11 @@ module.exports = {
       // const userTaskDataIDs = userTaskData.oldTasks.map(task => task.id);
       const newUserTasks = savedTasks.reduce((filtered, savedTask) => {
         const userTaskDatum = userTaskData.find(userTask => userTask.taskname === savedTask.taskname && userTask.maxTime === savedTask.maxTime);
-        if (userTaskDatum.enabled) {
+        // if (userTaskDatum.enabled) {
           // console.log(filtered, userTaskDatum);
-          filtered.push(savedTask);
-        }
+        savedTask.enabled = userTaskDatum.enabled;
+        // }
+        filtered.push(savedTask);
         return filtered;
       }, []);
       user.tasks = newUserTasks.map(task => task._id);

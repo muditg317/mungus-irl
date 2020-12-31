@@ -51,7 +51,8 @@ const TaskManager = () => {
   const history = useHistory();
 
   const anyUnsaved = useMemo(() =>
-    userTaskData.some(task => !task.saved)
+    userTaskData.length !== state.taskManager.userTasks.length
+    || userTaskData.some(task => !task.saved)
     || mobileTaskIDs.some(id => !state.taskManager.mobileTasks.includes(id))
     || state.taskManager.mobileTasks.some(id => !mobileTaskIDs.includes(id))
   , [userTaskData, mobileTaskIDs, state.taskManager.mobileTasks]);
@@ -144,7 +145,7 @@ const TaskManager = () => {
   // console.log(userTaskData);
 
   return (
-    <div className="h-full w-screen bg-red-700 flex flex-col items-center text-white">
+    <div className="h-full max-h-fit-borders w-full overflow-y-auto flex flex-col items-center text-white">
       <div className="w-full h-20 min-h-fit bg-gray-900 flex items-center justify-center p-4">
         <h1 className="text-3xl font-bold min-h-fit max-w-full">
           {`Welcome ${userData.username}!`}
@@ -155,8 +156,8 @@ const TaskManager = () => {
           Configure the tasks you like to play with!
         </h2>
       </div>
-      <div className="w-full h-fill bg-gray-700 p-2">
-        <div className="container mx-auto bg-gray-700 flex flex-col items-center">
+      <div className="w-full h-fill bg-gray-700 bg-clip-border">
+        <div className="w-full md:w-auto md:container mx-auto p-2 bg-gray-700 flex flex-col items-center">
           <div className="w-full flex flex-row items-center justify-between">
             <button onClick={() => history.push('/setup-tasks')} className="mr-auto min-w-fit p-2 flex flex-row items-center border border-blue-500 rounded-full hover:border-none hover:bg-blue-500 text-blue-500 hover:text-white">
               <p className="block mr-2">Setup Tasks</p><FontAwesomeIcon icon={['fas','cogs']} size='lg' />
@@ -178,7 +179,7 @@ const TaskManager = () => {
             <p className="hidden md:block mr-2">Add</p><FontAwesomeIcon icon={['fas','plus-circle']} size='lg' />
           </button>
         </div>
-        <div className="w-full bg-gray-700 pb-20">
+        <div className="w-full bg-gray-700 p-2">
           <h3 className="w-full bg-gray-700 text-center mb-3 text-lg">Mobile Tasks</h3>
           <div className="w-full bg-gray-700 flex flex-col items-center divide-y divide-white">
             {state.taskManager.mobileTaskInfo.map((taskDatum, index) => {

@@ -108,9 +108,9 @@ const JoinModal = ({ shown, username, setUsername, attemptJoin, onExit }) => {
                 </div>
                 <div className="form-field">
                   <label className="field-label">
-                    Passcode
+                    Room code
                   </label>
-                  <input ref={passcodeRef} onChange={handleChange(setPasscode, 5)} onKeyPress={handleEnterPressed} value={passcode} className={`field-input field-input-text`} id="passcode" type="passcode" placeholder="******************" />
+                  <input ref={passcodeRef} onChange={handleChange(setPasscode, 5)} onKeyPress={handleEnterPressed} value={passcode} className={`field-input field-input-text`} id="passcode" type="passcode" placeholder="*****" />
                 </div>
                 <div className="form-footer">
                   <button onClick={submitJoinRequest} className="form-submit" type="button">

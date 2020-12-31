@@ -28,7 +28,8 @@ module.exports = {
       },
       maxHeight: {
         '1/2': '50%',
-        '124': '31rem'
+        '124': '31rem',
+        'fit-borders': 'calc(100vh - 120px)'
       },
       maxWidth: {
         '1/2': '50%'
@@ -38,6 +39,10 @@ module.exports = {
       },
       minWidth: {
         fit: 'fit-content'
+      },
+      rotate: {
+        '-135': '-135deg',
+        '135': '135deg'
       },
       screens: {
         'print': {'raw': 'print'},

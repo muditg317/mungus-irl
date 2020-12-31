@@ -1,43 +1,109 @@
 const Player = require('./Player');
-const { globals, randStr, socketRemoteIP } = require('../../utils');
+const { globals, randStr, socketRemoteIP, upperFirstCharOnly } = require('../../utils');
 const { NODE_ENV } = require('../../config/env');
+
+const numericRule = (min, max, value, increment = 1) => {
+  return {
+    type: 'NUMERIC',
+    min,
+    max,
+    value,
+    increment
+  }
+};
+const toggleRule = (initialValue) => {
+  return {
+    type: 'TOGGLE',
+    value: initialValue
+  }
+};
+const enumRule = (options, value) => {
+  return {
+    type: 'ENUM',
+    options,
+    value
+  }
+}
+
+const DEFAULT_RULES = {
+  '# imposters': numericRule(1,3,2),
+  'Confirm Ejects': toggleRule(false),
+  '# Emergency Meetings': numericRule(1,3,1),
+  'Emergency Cooldown': numericRule(0,60,20,5),
+  'Anonymous Votes': toggleRule(false),
+  'Voting Time': numericRule(15,150,120,15),
+  'Kill Cooldown': numericRule(0,60,25,5),
+  'Task Bar Updates': enumRule(["ALWAYS","MEETINGS","NEVER"],"ALWAYS"),
+  'Visual Tasks': toggleRule(false),
+  'Common Tasks': numericRule(0,2,1),
+  'Short Tasks': numericRule(0,5,2),
+  'Long Tasks': numericRule(0,3,2)
+};
+
+const parseRuleValue = (rule) => {
+  switch (rule.type) {
+    case 'NUMERIC':
+      return rule.value;
+    case 'TOGGLE':
+      return rule.value ? 'On' : 'Off';
+    case 'ENUM':
+      return rule.value;
+    default:
+      return rule.value;
+  }
+}
 
 module.exports = class Game {
   static RESPONSELESS_PING_THRESHOLD = NODE_ENV === 'development' ? 2 : 2;
 
-  constructor({ hostname, tasks, sockets, started, players, passcode, gameToken } = {}) {
+  constructor({ hostname, tasks = [], sockets = [], started = false, players = {}, passcode, gameToken } = {}) {
+    this.rules = { ...DEFAULT_RULES };
     this.hostname = hostname;
     // this.roomID = randStr(5, 'a0');
     // TODO: add gameIO
     // this.gameRoomIO = globals.rootIO.of(`/game/${hostname}`);
     // TODO: NO! BAD! NEVER MAKE NAMESPACE WITH of() !!!!!!!
-    this.tasks = tasks || [];
-    this.sockets = sockets || [];
-    this.started = started || false;
-    this.players = players || {};
+    this.tasks = {common: {}, short: {}, long: {}};
+    tasks.forEach(task => {
+      task.online = !task.physicalDeviceID;
+      this.tasks[task.format][task.qrID] = task;
+    });
+    this.updateTaskRuleLimits();
+    this.sockets = sockets;
+    this.started = started;
+    this.players = players;
     this.passcode = passcode || randStr(5, 'a0');
     this.gameToken = gameToken || randStr(30, 'aA0$');
     this.responselessPings = 0;
     this.pingIntervalID = setInterval(() => {
-      const responseless = Object.keys(this.players).map(username => {
-        const player = this.players[username];
-        if (player.socket && player.isUnresponsive()) {
-          return !this.unregisterPlayerSocket(username);
-        }
-        player.wasActive = player.active;
-        player.active = player.socket && player.socket.connected;
-        globals.rootIO.of("/debug").emit(`activityCheckAt:${this.getIndexVariable()}`, {username, active:`${player.active}`, was:`${player.wasActive}`});
-        return player.wasActive;
-      }).every(active => !active);
-      (responseless && ++this.responselessPings) || (this.responselessPings = 0);
-      if (this.responselessPings > this.constructor.RESPONSELESS_PING_THRESHOLD) {
-        return this.close();
-      }
-      if (!responseless) {
-        // remove lmao i should be sending live updates not timed updates
-        this.gameRoomIO && this.gameRoomIO.to("players").emit("playerData", { players: this.getPlayerData("GamePrivate") });
-      }
+      this.checkPlayerActivityState();
     }, 5000);
+  }
+
+  /**
+   * [checkPlayerActivityState description]
+   * @return boolean true if any players are active, false otherwise
+   */
+  checkPlayerActivityState() {
+    const responseless = Object.keys(this.players).map(username => {
+      const player = this.players[username];
+      if (player.socket && player.isUnresponsive()) {
+        return !this.unregisterPlayerSocket(username);
+      }
+      player.wasActive = player.active;
+      player.active = player.socket && player.socket.connected;
+      // globals.rootIO.of("/debug").emit(`activityCheckAt:${this.getIndexVariable()}`, {username, active:`${player.active}`, was:`${player.wasActive}`});
+      return player.wasActive;
+    }).every(active => !active);
+    (responseless && ++this.responselessPings) || (this.responselessPings = 0);
+    if (this.responselessPings >= this.constructor.RESPONSELESS_PING_THRESHOLD) {
+      return !this.close();
+    }
+    if (!responseless) {
+      // remove lmao i should be sending live updates not timed updates
+      // this.gameRoomIO && this.gameRoomIO.to("players").emit("allPlayersData", { players: this.getPlayerData("GamePrivate") });
+    }
+    return;
   }
 
   getIndexVariable() {
@@ -52,14 +118,28 @@ module.exports = class Game {
     return Object.fromEntries(Object.entries(this.players).map(entry => [entry[0], entry[1][`get${pubPriv}Data`]()]))
   }
 
+  getTasksStatus() {
+    const statuses = {};
+    Object.values(this.tasks).map(taskSet => {
+      Object.values(taskSet).map(task => {
+        if (task.physicalDeviceID) {
+          statuses[task.taskname] = {online: task.online};
+        }
+      });
+    });
+    return statuses;
+  }
+
   getPublicData(fillPlayers = true) {
     const players = fillPlayers ? this.getPlayerData("Public") : this.getPlayerUsernames();
-    return {hostname: this.hostname, players};
+    const rules = Object.fromEntries(Object.entries(this.rules).map(entry => [entry[0], {value: parseRuleValue(entry[1])}]));
+    return {hostname: this.hostname, rules, players};
   }
 
   getGamePrivateData(fillPlayers = true) {
     const publicData = this.getPublicData();
     publicData.players = fillPlayers ? this.getPlayerData("GamePrivate") : this.getPlayerUsernames();
+    publicData.tasks = this.getTasksStatus();
     publicData.passcode = this.passcode;
     return publicData;
   }
@@ -68,6 +148,12 @@ module.exports = class Game {
     const privateData = this.getGamePrivateData();
     this.hasPlayer(username) && (privateData.players[username] = this.players[username].getUserPrivateData());
     return privateData;
+  }
+
+  getHostData() {
+    const userPrivateData = this.getUserPrivateData(this.hostname);
+    userPrivateData.rules = this.rules;
+    return userPrivateData;
   }
 
   close() {
@@ -82,6 +168,7 @@ module.exports = class Game {
     delete globals.games[this.getIndexVariable()];
     clearInterval(this.pingIntervalID);
     globals.rootIO.of("/lobby").emit("removeGame", { game:this.getPublicData() });
+    return true;
   }
 
   hasPlayer(username) {
@@ -93,14 +180,15 @@ module.exports = class Game {
   }
 
   addPlayer({socket, username} = {}) {
-    if (!socket || !username || this.hasPlayer(username)) {
+    if (this.started || !socket || !username || this.hasPlayer(username)) {
       throw new Error("Invalid player join attempt!");
     }
     const newPlayer = new Player({
       username, socketAddress: socketRemoteIP(socket)
     })
-    this.numActivePlayers() && this.gameRoomIO.to("players").emit("playerJoin", { player: newPlayer.getGamePrivateData() });
+    this.numActivePlayers() && this.sendPlayerUpdate(newPlayer, "playerJoin");
     this.players[username] = newPlayer;
+    this.updateImposterLimit();
   }
 
   updatePlayer({socket, username} = {}) {
@@ -112,7 +200,7 @@ module.exports = class Game {
   }
 
   registerPlayerSocket(username, socket) {
-    globals.rootIO.of("/debug").emit("debug_info", socket.handshake);
+    // globals.rootIO.of("/debug").emit("debug_info", socket.handshake);
     if (!this.hasPlayer(username)) {
       console.log("player register fail -- username not found");
       console.log("\t", username, "|", player.username);
@@ -150,6 +238,7 @@ module.exports = class Game {
     delete player.socket;
     delete player.socketID;
     player.active = false;
+    this.setReadyState(player, false);
     if (!this.numActivePlayers()) {
       console.log(`CLOSE GAME: ${this.getIndexVariable()}| -- all players gone`);
       this.close();
@@ -166,14 +255,86 @@ module.exports = class Game {
     }
     // TODO: add more remove logic (unassigning tasks and stuff, close socket)
     delete this.players[username];
+    !this.started && this.updateImposterLimit();
     return player;
   }
 
-  sendPlayerUpdate(player) {
-    this.gameRoomIO && this.gameRoomIO.to("players").emit("playerInfo", player.getGamePrivateData());
+  sendPlayerUpdate(player, eventName = "playerInfo") {
+    this.gameRoomIO && this.gameRoomIO.to("players").emit(eventName, { player: player.getGamePrivateData() });
   }
 
   numActivePlayers() {
     return Object.values(this.players).filter(player => player.isActive({strict:true})).length;
+  }
+
+  setReadyState(player, ready) {
+    if (player !== this.players[player.username]) {
+      throw new Error("Invalid player ready state update!");
+    }
+    // console.log('set player ready:',player.username,"|",ready);
+    player.ready = ready;
+    this.sendPlayerUpdate(player);
+  }
+
+  emitRuleUpdate(ruleName) {
+    const rule = this.rules[ruleName];
+    this.gameRoomIO && this.gameRoomIO.to("nonHostPlayers").emit("ruleUpdate", {ruleName, rule:{value:parseRuleValue(rule)}});
+    this.gameRoomIO && this.gameRoomIO.to("host").emit("ruleUpdate", {ruleName, rule});
+  }
+
+  updateImposterLimit() {
+    const ruleName = '# imposters';
+    const rule = this.rules[ruleName];
+    rule.max = Math.floor(Object.keys(this.players).length / 3) || 1;
+    rule.value = Math.min(Math.max(rule.value, rule.min), rule.max);
+    this.emitRuleUpdate(ruleName);
+  }
+
+  updateTaskRuleLimits() {
+    ['common', 'short', 'long'].forEach(format => {
+      const ruleName = upperFirstCharOnly(format) + " Tasks";
+      const rule = this.rules[ruleName];
+      rule.max = Math.min(rule.max, this.tasks[format].length);
+      rule.value = Math.min(Math.max(rule.value, rule.min), rule.max);
+      this.emitRuleUpdate(ruleName);
+    });
+  }
+
+  updateRule(ruleName, newValue) {
+    const rule = this.rules[ruleName];
+    const oldValue = rule.value;
+    // console.log('updating rule', ruleName, oldValue, newValue);
+    // console.log(require('util').inspect(rule, { depth: null }));
+    switch (rule.type) {
+      case 'NUMERIC':
+        if (newValue >= rule.min && newValue <= rule.max) {
+          rule.value = newValue;
+        }
+        break;
+      case 'TOGGLE':
+        rule.value = newValue;
+        break;
+      case 'ENUM':
+        if (rule.options.includes(newValue)) {
+          rule.value = newValue;
+        }
+      default:
+        break;
+    }
+    rule.value !== oldValue && this.emitRuleUpdate(ruleName);
+  }
+
+  startGame() {
+    this.started = true;
+    const commonTaskCount = this.rules['Common Tasks'].value;
+    const shortTaskCount = this.rules['Short Tasks'].value;
+    const longTaskCount = this.rules['Long Tasks'].value;
+    const tasksPerPlayer = commonTaskCount + shortTaskCount + longTaskCount;
+    this.numPlayers = Object.keys(this.players).length;
+    this.totalTaskCount = tasksPerPlayer * this.numPlayers;
+    Object.values(this.players).forEach(player => {
+      player.assignedTasks = [];
+
+    });
   }
 }

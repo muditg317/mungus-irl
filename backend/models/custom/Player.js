@@ -17,6 +17,7 @@ module.exports = class Player {
 
   getGamePrivateData() {
     const publicData = this.getPublicData();
+    publicData.ready = this.ready;
     return publicData;
   }
 

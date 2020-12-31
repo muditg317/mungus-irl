@@ -21,7 +21,7 @@ module.exports = {
       timeout
     ]);
   },
-  fieldsFromBody: (body, fieldNames) => {
+  fieldsFromObject: (body, fieldNames) => {
     let fields = {};
     fieldNames.forEach((field) => {
       fields[field] = body[field];
@@ -51,5 +51,8 @@ module.exports = {
       remoteAddress = socket.handshake.address;
     }
     return remoteAddress;
+  },
+  upperFirstCharOnly: (string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
   }
 };

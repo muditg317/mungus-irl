@@ -36,7 +36,7 @@ const UserTaskDescription = ({ task, errors, deleteTask, updateTask, ...props })
         <div className="w-full flex flex-wrap flex-row items-center justify-start mb-1">
           <label className="mr-1 text-lg">Name:</label>
           <input className="bg-gray-800 rounded-md pl-1 text-lg font-bold" value={`${task.taskname || ''}`} onChange={handleChange('taskname',task,updateTask,{maxLength:15})} size="10" maxLength="15"/>
-          <button onClick={handleChange('enabled',task,updateTask,{toggle:true})} className={`ml-auto p-0.5 pl-1 text-sm flex flex-row items-center border border-${color}-500 rounded-full hover:border-none hover:bg-${color}-500 text-${color}-500 hover:text-white`}>
+          <button onClick={handleChange('enabled',task,updateTask,{toggle:true})} className={`ml-auto p-0.5 pl-1 text-sm flex flex-row items-center border border-${color}-500 rounded-full text-${color}-500 ${isMobile() ? `focus:outline-none focus:bg-transparent focus:text-${color}-500` : `hover:bg-${color}-500 hover:text-white`}`}>
             <p className={`mr-2`}>{task.enabled ? "Enabled" : "Disabled"}</p><FontAwesomeIcon icon={[task.enabled ? "fas" : "far",`${task.enabled ? "check" : "times"}-circle`]} size='lg' />
           </button>
           {taskError.taskname && <p className="text-red-500 text-sm">{taskError.taskname}</p>}
@@ -68,7 +68,7 @@ const UserTaskDescription = ({ task, errors, deleteTask, updateTask, ...props })
         </div>
       </div>
       <div className="flex flex-col">
-        <button onClick={deleteTask} className="ml-auto p-2 flex flex-row items-center border border-red-500 rounded-full hover:border-none hover:bg-red-500 text-red-500 hover:text-white">
+        <button onClick={deleteTask} className={`ml-auto p-2 flex flex-row items-center border border-red-500 rounded-full text-red-500 ${isMobile() ? `focus:outline-none focus:border-none focus:bg-red-500 focus:text-white` : `hover:border-none hover:bg-red-500 hover:text-white`}`}>
           <p className={`hidden md:block mr-2`}>Delete</p><FontAwesomeIcon icon={['far','times-circle']} size='lg' />
         </button>
       </div>
@@ -83,6 +83,7 @@ const MobileTaskDescription = ({ task, selected, selectTask, unselectTask }) => 
       <div className="w-full">
         <div className="w-full flex flex-wrap flex-row items-center justify-start">
           <p className="bg-transparent w-fit text-lg font-bold">{`${task.taskname || ''}`}</p>
+          <p className="bg-transparent w-fit text-lg ml-1">{`${(task.format && `(${task.format})`) || ''}`}</p>
           {
             // <label className="mr-1">ID:</label>
             // <p className="bg-transparent w-fit text-base font-semibold">{`${task.qrID || ''}`}</p>
@@ -92,7 +93,7 @@ const MobileTaskDescription = ({ task, selected, selectTask, unselectTask }) => 
 
         </div>
       </div>
-      <button onClick={selected ? unselectTask : selectTask} className={`ml-auto flex flex-row items-center rounded-full hover:bg-${color}-500 text-${color}-500 hover:text-white ${isMobile() && `focus:outline-none focus:bg-transparent focus:text-${color}-500`}`}>
+      <button onClick={selected ? unselectTask : selectTask} className={`ml-auto flex flex-row items-center rounded-full text-${color}-500 ${isMobile() ? `focus:outline-none focus:bg-transparent focus:text-${color}-500` : `hover:bg-${color}-500 hover:text-white`}`}>
         <FontAwesomeIcon icon={[selected ? 'fas' : 'far','check-circle']} size='2x' />
       </button>
     </div>
