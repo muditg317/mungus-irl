@@ -1,16 +1,6 @@
-import React, { useEffect, useState, useCallback, useContext, useRef, useMemo } from 'react';
-import { Redirect, useLocation, useRouteMatch } from "react-router-dom";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { confirmAlert } from 'react-confirm-alert';
-import 'react-confirm-alert/src/react-confirm-alert.css';
-import QRCode from 'qrcode';
-
-import socketIOClient from 'socket.io-client';
+import React, { useMemo } from 'react';
 
 import RuleInput from './ruleInput';
-
-import { store } from 'state-management';
-import { checkValidAuthToken } from 'utils';
 
 export default function WaitingRoom(props) {
   const { players, username, hostname, rules, tasksStatus, toggleReadyState, updateRule, startGame } = props;
@@ -40,15 +30,15 @@ export default function WaitingRoom(props) {
               <div className="table-cell w-1/2">
                 <div className="ml-1">
                   { playerName === username
-                    ? <button className="border border-white rounded-md text-red-500 p-0.5" onClick={toggleReadyState}>{player.ready ? "Unready" : "Ready up!"}</button>
-                    : <p>{player.ready ? "Ready!" : "Not ready"}</p>
+                    ? <button className={`border border-white rounded-md p-0.5 ${player.ready ? 'text-green-500' : 'text-red-500'}`} onClick={toggleReadyState}>{player.ready ? "Unready" : "Ready up!"}</button>
+                    : <p className={`${player.ready ? 'text-green-500' : 'text-red-500'}`}>{player.ready ? "Ready!" : "Not ready"}</p>
                   }
                 </div>
               </div>
             </div>
           })}
         </div>
-        <div className="pt-1 md:pt-0 md:pl-1 w-full md:w-1/2">
+        <div className="py-1 md:pl-1 w-full md:w-1/2">
           <div className="flex flex-col">
             { Object.keys(rules).map(ruleName => {
               const rule = rules[ruleName];
@@ -71,7 +61,7 @@ export default function WaitingRoom(props) {
           </div>
         </div>
       </div>
-      <div className="pt-1 md:pt-0 md:pl-1 w-full">
+      { !!Object.keys(tasksStatus).length && <div className="pt-1 md:pt-0 md:pl-1 w-full">
         <div className="flex flex-col">
           { Object.keys(tasksStatus).map(taskname => {
             const task = tasksStatus[taskname];
@@ -89,7 +79,7 @@ export default function WaitingRoom(props) {
             </div>
           })}
         </div>
-      </div>
+      </div> }
       { username === hostname && <div className="w-full h-fill mt-1 pt-1 flex flex-row justify-center items-end">
         <button disabled={!readyToStart} className={`mt-auto w-1/2 h-14 rounded-full border-none bg-gray-${readyToStart ? '300' : '500'} text-3xl font-bold ${readyToStart ? 'text-red-500' : 'text-gray-700'}`} onClick={() => startGame()}>
           Start!

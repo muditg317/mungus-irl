@@ -1,14 +1,6 @@
-import React, { useEffect, useState, useCallback, useContext, useRef, useMemo } from 'react';
-import { Redirect, useLocation, useRouteMatch } from "react-router-dom";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { confirmAlert } from 'react-confirm-alert';
-import 'react-confirm-alert/src/react-confirm-alert.css';
-import QRCode from 'qrcode';
+import React from 'react';
 
-import socketIOClient from 'socket.io-client';
-
-import { store } from 'state-management';
-import { checkValidAuthToken, upperFirstCharOnly } from 'utils';
+import { upperFirstCharOnly } from 'utils';
 
 const parseRuleValue = (rule) => {
   switch (rule.type) {
@@ -42,13 +34,6 @@ export default function RuleInput(props) {
         </button>
       );
     case 'ENUM':
-      // return (
-      //   <select className="bg-gray-500 rounded-md" onChange={(event) => updateRule(ruleName, rule.value, event.target.value)}>
-      //     {rule.options.map(ruleOption => {
-      //       return <option key={ruleOption} value={ruleOption} selected={rule.value === ruleOption}>{upperFirstCharOnly(ruleOption)}</option>
-      //     })}
-      //   </select>
-      // );
       return (
         <button className="bg-gray-500 rounded-md px-1 py-0.5" onClick={() => updateRule(ruleName, rule.value, rule.options[(rule.options.indexOf(rule.value) + 1) % rule.options.length])}>
           { upperFirstCharOnly(rule.value) }

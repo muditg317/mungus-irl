@@ -233,7 +233,7 @@ export default function Lobby({ openAuthModal }) {
             <h2 className="text-xl font-bold self-start mr-2 mb-1">Username:</h2>
             { state.auth.isAuthenticated
               ? <p className="mb-1 font-bold text-xl bg-transparent w-fit">{state.auth.user.username || username}</p>
-              : <input ref={usernameRef} readOnly={state.auth.isAuthenticated} onChange={handleChange(setUsername, 15)} value={state.auth.user.username || username} className={`mb-1 p-1 rounded-md bg-gray-900 text-purple-500`} id="username" type="username" placeholder="Username" />
+              : <input ref={usernameRef} readOnly={state.auth.isAuthenticated} onChange={handleChange(setUsername, 10)} value={state.auth.user.username || username} className={`mb-1 p-1 rounded-md bg-gray-900 text-purple-500`} id="username" type="username" placeholder="Username" />
             }
           </div>
           <div className="flex flex-row flex-wrap items-center justify-around sm:h-12">

@@ -15,7 +15,7 @@ module.exports = (rootIO, lobbyIO) => {
 
   lobbyIO.on("connection", async (socket) => {
     socket.join("lobby");
-    console.log(`new user joined lobby: ${socket.id}`);
+    // console.log(`new user joined lobby: ${socket.id}`);
 
     const socketUsername = socket.handshake.query.username || '';
 

@@ -1,4 +1,4 @@
-const { globals, randStr } = require('../../utils');
+const { globals, randStr, fieldsFromObject } = require('../../utils');
 
 
 module.exports = class Player {
@@ -9,6 +9,9 @@ module.exports = class Player {
     this.active = active;
     this.wasActive = wasActive;
     this.ready = ready || false;
+    this.tasks = {};
+    this.publiclyAlive = true;
+    this.alive = true;
   }
 
   getPublicData() {
@@ -18,11 +21,13 @@ module.exports = class Player {
   getGamePrivateData() {
     const publicData = this.getPublicData();
     publicData.ready = this.ready;
+    publicData.publiclyAlive = this.publiclyAlive;
     return publicData;
   }
 
   getUserPrivateData() {
     const privateData = this.getGamePrivateData();
+    privateData.alive = this.alive;
     return privateData;
   }
 
@@ -35,4 +40,62 @@ module.exports = class Player {
   isUnresponsive({strict} = {}) {
     return strict ? (!this.active && !this.wasActive) : (this.active === false && this.wasActive === false);
   }
+
+  reset() {
+    const socket = this.socket;
+    if (socket) {
+      socket.leave("alive");
+      socket.leave("crewmates");
+      socket.leave("imposters");
+      socket.leave("ghosts");
+    }
+    this.ready = false;
+    this.tasks = {};
+    this.alive = true;
+    this.publiclyAlive = true;
+    this.votingChoice = null;
+    this.pendingReport = null;
+    this.pendingVictim = null;
+    this.victims = null;
+    clearInterval(this._killTimerInterval);
+  }
+
+  get killTimer() {
+    return this._killTimer;
+  }
+
+  set killTimer(newKillTimer) {
+    clearInterval(this._killTimerInterval);
+    this._killTimer = newKillTimer;
+    this.socket && this.socket.emit("killTimer", {killTimer: this._killTimer});
+    const step = 1000;
+    const decr = step/1000;
+    this._killTimerInterval = setInterval(() => {
+      this._killTimer -= decr;
+      this._killTimer % 1 === 0 && this.socket && this.socket.emit("killTimer", {killTimer: this._killTimer});
+      if (this._killTimer <= 0) {
+        this.readyToKill();
+      }
+    }, step);
+  }
+
+  clearKillTimer() {
+    clearInterval(this._killTimerInterval);
+  }
+
+  readyToKill() {
+    this._killTimer = 0;
+    clearInterval(this._killTimerInterval);
+    this.socket && this.socket.emit("readyToKill");
+  }
+
+  toJSON(parentKey) {
+    return JSON.stringify(this, (key, value) => {
+      if (key === 'socket') {
+        return fieldsFromObject(value, ['id','rooms','handshake']);
+      }
+      return value;
+    });
+  }
+
 }

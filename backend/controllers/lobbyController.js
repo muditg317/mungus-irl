@@ -6,7 +6,7 @@ const { MONGOOSE_READ_TIMEOUT } = require('../config/env');
 
 module.exports = {
   createGame: async (rootIO, lobbyIO, socket, jwtToken) => {
-    console.log("create game - token:", jwtToken);
+    // console.log("create game - token:", jwtToken);
     let { id, username } = verifyJWTtoken(jwtToken.slice(jwtToken.indexOf(' ')+1));
     while (globals.games[username])
       if (globals.games[username].checkPlayerActivityState())
@@ -19,7 +19,7 @@ module.exports = {
       // delete task.id;
       // console.log(task);
       // console.log(task.toObject());
-      const taskData = task;//fieldsFromObject(task, Object.keys(Task.schema.paths));
+      const taskData = task.toObject();//fieldsFromObject(task, Object.keys(Task.schema.paths));
       delete taskData.createdBy;
       delete taskData.createdAt;
       delete taskData.updatedBy;
@@ -39,9 +39,15 @@ module.exports = {
   joinGame: async (rootIO, lobbyIO, socket, callback, gameIndex, passcode, username) => {
     if (!globals.games[gameIndex])
       throw new Error(`No game with id ${gameIndex}!`);
-    username = username.trim && username.trim();
+    username = username && username.trim && username.trim();
     if (!username || !username.length) {
       throw new Error("Invalid username");
+    }
+    if (username.length > 10) {
+      throw new Error("Username cannot exceed 10 characters");
+    }
+    if (username.search(/^[a-zA-Z0-9-_]+$/) === -1) {
+      throw new Error("Username is invalid (must contain only a-z A-Z 0-9 _ -)");
     }
     const game = globals.games[gameIndex];
     const existingPlayer = game.getPlayer(username);
@@ -75,14 +81,14 @@ module.exports = {
     //     throw new Error("Attempt speedy rejoin game when user has been inactive in game");
     //   }
     // }
-    console.log(`trying to join with existing player u:${username}|player:${existingPlayer}|list:${game.getPlayerUsernames()}|`);
+    // console.log(`trying to join with existing player u:${username}|player:${existingPlayer}|list:${game.getPlayerUsernames()}|`);
     if (existingPlayer && (existingPlayer.isActive({loose:true})) && !speedyRejoin) {
       throw new Error(`${username} is already in the game!`);
     } else if (existingPlayer) {
-      console.log("update player");
-      game.updatePlayer({socket, username});
+      // console.log("update player");
+      game.updatePlayerSocket({socket, username});
     } else {
-      console.log("add player")
+      // console.log("add player")
       game.addPlayer({socket, username});
     }
     callback({ code: "SUCCESS", message: `Joined game!`, data: { ...game.getPublicData(), gameToken: game.gameToken } });

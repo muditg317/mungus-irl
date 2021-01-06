@@ -7,7 +7,7 @@ import { handleChange } from 'utils';
 
 const JoinModal = ({ shown, username, setUsername, attemptJoin, onExit }) => {
   const { joinError } = (typeof shown) === "string" ? {} : shown;
-  console.log(`joinError: ${joinError}\nusername:${username}`);
+  // console.log(`joinError: ${joinError}\nusername:${username}`);
   shown = !!shown;
   // const { state, dispatch } = useContext(store);
   // const loginUser = useCallback((...args) => loginUserAction(dispatch)(...args), [dispatch]);
@@ -73,7 +73,7 @@ const JoinModal = ({ shown, username, setUsername, attemptJoin, onExit }) => {
     }
   }, [submitJoinRequest]);
 
-  console.log(shown);
+  // console.log(shown);
   if (!shown) {
     return;
   }
@@ -104,7 +104,7 @@ const JoinModal = ({ shown, username, setUsername, attemptJoin, onExit }) => {
                   <label className="field-label">
                     Username
                   </label>
-                  <input onChange={handleChange(setUsername, 15)} onKeyPress={handleEnterPressed} value={username} className={`field-input field-input-text`} id="username" type="text" placeholder="Username" />
+                  <input onChange={handleChange(setUsername, 10)} onKeyPress={handleEnterPressed} value={username} className={`field-input field-input-text`} id="username" type="text" placeholder="Username" />
                 </div>
                 <div className="form-field">
                   <label className="field-label">

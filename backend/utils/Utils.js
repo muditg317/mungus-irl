@@ -31,12 +31,15 @@ module.exports = {
   verifyJWTtoken: (token) => {
     return jwt.verify(token, SECRET_OR_KEY);
   },
-  randStr: (length, valid='aA0') => {
-    let result           = '';
+  randStr: (length, valid='aA0', { noQuotes = false } = {}) => {
+    let result             = '';
     const characters       = (/[A-Z]/g.test(valid) ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' : '')
         + (/[a-z]/g.test(valid) ? 'abcdefghijklmnopqrstuvwxyz' : '')
         + (/[0-9]/g.test(valid) ? '0123456789' : '')
         + (/[$-/:-?{-~!"^_`\[\]]/g.test(valid) ? '!$%^&*()_+|~-=`{}[]:";\'<>?,./' : '');
+    if (noQuotes) {
+      characters = characters.replace(/'"`/g, '');
+    }
     const charactersLength = characters.length;
     for ( let i = 0; i < length; i++ ) {
       result += characters.charAt(Math.floor(Math.random() * charactersLength));
@@ -54,5 +57,18 @@ module.exports = {
   },
   upperFirstCharOnly: (string) => {
     return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+  },
+  getRandomSubarray: (arr, size) => {
+    let shuffled = arr.slice(0), i = arr.length, min = i - size, temp, index;
+    while (i-- > min) {
+      index = Math.floor((i + 1) * Math.random());
+      temp = shuffled[index];
+      shuffled[index] = shuffled[i];
+      shuffled[i] = temp;
+    }
+    return shuffled.slice(min);
+  },
+  clamp: (min, value, max) => {
+    return Math.min(Math.max(value, min), max);
   }
 };

@@ -30,8 +30,7 @@ module.exports = (rootIO, gameRooms) => {
   });
 
   gameRooms.on('connection', socket => {
-    socket.send("hello");
-    console.log(`game connection ${socket.nsp.name}: ${socket.id}|${socketRemoteIP(socket)}`);
+    // console.log(`game connection ${socket.nsp.name}: ${socket.id}|${socketRemoteIP(socket)}`);
     try {
       switch (socket.handshake.query.clientType) {
         case "PLAYER":

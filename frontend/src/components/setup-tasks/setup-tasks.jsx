@@ -71,7 +71,7 @@ const ViewQrCodes = () => {
   }, [taskData]);
 
   return (
-    <div className="container mx-auto h-full flex flex-col print:flex-row print:flex-wrap items-center text-black">
+    <div className="container mx-auto h-full flex flex-col print:flex-row print:flex-wrap items-center text-black bg-white overflow-y-scroll">
       <div className="print:hidden w-full p-2">
         <h1 className="text-2xl text-center font-bold">Setup your devices and tasks!</h1>
         <p className="text-lg font-semibold"><button className="font-bold underline" onClick={() => window.print()}>Print</button> these QR codes and place them wherever you want to complete each one from! <span className="text-sm">(Printing from mobile doesn't work well)</span></p>
@@ -100,6 +100,9 @@ const ViewQrCodes = () => {
           </div>
         })}
       </div>
+      <button className="rounded-full p-4 text-xl text-black border border-black m-4 print:hidden" onClick={() => window.print()}>
+        Print QR Codes!
+      </button>
     </div>
   );
 };

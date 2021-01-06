@@ -12,8 +12,8 @@ module.exports = function validateRegisterInput(data) {
   } else if (data.username.search(/^[a-zA-Z0-9-_]+$/) === -1) {
     errors.username = 'Username is invalid (must contain only a-z A-Z 0-9 _ -)';
   }
-  if (!Validator.isLength(data.username, { min: 2, max: 15 })) {
-    errors.username = data.username.length <= 15 ? 'Username must be at least 2 characters' : 'Username must be at most 15 characters';
+  if (!Validator.isLength(data.username, { min: 2, max: 10 })) {
+    errors.username = data.username.length <= 10 ? 'Username must be at least 2 characters' : 'Username must be at most 10 characters';
   }
   // Password checks
   if (Validator.isEmpty(data.password)) {

@@ -1,5 +1,5 @@
 const Player = require('./Player');
-const { globals, randStr, socketRemoteIP, upperFirstCharOnly } = require('../../utils');
+const { globals, randStr, socketRemoteIP, upperFirstCharOnly, getRandomSubarray, clamp, fieldsFromObject } = require('../../utils');
 const { NODE_ENV } = require('../../config/env');
 
 const numericRule = (min, max, value, increment = 1) => {
@@ -32,7 +32,7 @@ const DEFAULT_RULES = {
   'Emergency Cooldown': numericRule(0,60,20,5),
   'Anonymous Votes': toggleRule(false),
   'Voting Time': numericRule(15,150,120,15),
-  'Kill Cooldown': numericRule(0,60,25,5),
+  'Kill Cooldown': numericRule(5,60,25,5),
   'Task Bar Updates': enumRule(["ALWAYS","MEETINGS","NEVER"],"ALWAYS"),
   'Visual Tasks': toggleRule(false),
   'Common Tasks': numericRule(0,2,1),
@@ -43,7 +43,7 @@ const DEFAULT_RULES = {
 const parseRuleValue = (rule) => {
   switch (rule.type) {
     case 'NUMERIC':
-      return rule.value;
+      return parseInt(rule.value);
     case 'TOGGLE':
       return rule.value ? 'On' : 'Off';
     case 'ENUM':
@@ -53,31 +53,49 @@ const parseRuleValue = (rule) => {
   }
 }
 
+const DEFAULT_IMCOMPLETE_TASK = {
+  completed: false,
+  active: false
+};
+
+const POST_VOTING_DELAY = 5000;
+const EJECTION_TIME = 7500;
+
 module.exports = class Game {
   static RESPONSELESS_PING_THRESHOLD = NODE_ENV === 'development' ? 2 : 2;
 
-  constructor({ hostname, tasks = [], sockets = [], started = false, players = {}, passcode, gameToken } = {}) {
+  constructor({ hostname, tasks = [], sockets = [], started = false, ended = false, players = {}, passcode, gameToken } = {}) {
     this.rules = { ...DEFAULT_RULES };
     this.hostname = hostname;
     // this.roomID = randStr(5, 'a0');
     // TODO: add gameIO
     // this.gameRoomIO = globals.rootIO.of(`/game/${hostname}`);
     // TODO: NO! BAD! NEVER MAKE NAMESPACE WITH of() !!!!!!!
-    this.tasks = {common: {}, short: {}, long: {}};
+    this.tasks = {};
     tasks.forEach(task => {
       task.online = !task.physicalDeviceID;
-      this.tasks[task.format][task.qrID] = task;
+      task.socket = null;
+      task.inUse = false;
+      this.tasks[task.qrID] = task;
+      // this.tasks[task.format][task.qrID] = task;
     });
     this.updateTaskRuleLimits();
-    this.sockets = sockets;
+    // this.sockets = sockets;
     this.started = started;
+    this.ended = ended;
+    this.inMeeting = false;
+    this.votes = {};
+    this.winners = null;
     this.players = players;
+    this.crewmates = {};
+    this.imposters = {};
+    this.ghosts = {};
     this.passcode = passcode || randStr(5, 'a0');
     this.gameToken = gameToken || randStr(30, 'aA0$');
     this.responselessPings = 0;
-    this.pingIntervalID = setInterval(() => {
-      this.checkPlayerActivityState();
-    }, 5000);
+    // this.pingIntervalID = setInterval(() => {
+    //   this.checkPlayerActivityState();
+    // }, 5000);
   }
 
   /**
@@ -118,16 +136,29 @@ module.exports = class Game {
     return Object.fromEntries(Object.entries(this.players).map(entry => [entry[0], entry[1][`get${pubPriv}Data`]()]))
   }
 
-  getTasksStatus() {
-    const statuses = {};
-    Object.values(this.tasks).map(taskSet => {
-      Object.values(taskSet).map(task => {
+  getPhysicalTasks() {
+    const tasks = {};
+    Object.values(this.tasks).map(task => {
+      // console.log(taskSet);
+      // Object.values(taskSet).map(task => {
         if (task.physicalDeviceID) {
-          statuses[task.taskname] = {online: task.online};
+          tasks[task.taskname] = task;
         }
-      });
+      // });
     });
-    return statuses;
+    return tasks;
+  }
+
+  getTasksStatus() {
+    return Object.fromEntries(Object.entries(this.getPhysicalTasks()).map(entry => [entry[0], {online: entry[1].online}]))
+  }
+
+  getPublicTaskInfo(playerTasks) {
+    return Object.fromEntries(Object.entries(playerTasks).map(([key,value]) => ([this.tasks[key].taskname, {
+        ...value,
+        ...fieldsFromObject(this.tasks[key], ['taskname','format'])
+      }])
+    ));
   }
 
   getPublicData(fillPlayers = true) {
@@ -139,15 +170,55 @@ module.exports = class Game {
   getGamePrivateData(fillPlayers = true) {
     const publicData = this.getPublicData();
     publicData.players = fillPlayers ? this.getPlayerData("GamePrivate") : this.getPlayerUsernames();
-    publicData.tasks = this.getTasksStatus();
+    publicData.tasksStatus = this.getTasksStatus();
     publicData.passcode = this.passcode;
+    publicData.started = this.started;
+    publicData.ended = this.ended;
+    publicData.inMeeting = this.inMeeting;
+    publicData.meetingInfo = this.meetingInfo;
+    if (this.inMeeting) {
+      if (this.votingTimer <= 0) {
+        publicData.votes = this.votes;
+        const ejectedPlayer = {name: this.ejectedPlayer};
+        if (this.rules["Confirm Ejects"].value) {
+          ejectedPlayer.role = this.ejectedPlayer in this.imposters ? "IMPOSTER" : "CREWMATE";
+        }
+        publicData.ejectedPlayer = ejectedPlayer;
+      } else {
+        publicData.castedVotes = Object.values(this.players).filter(player => !!player.votingChoice).map(player => player.username);
+      }
+    }
+    if (this.ended) {
+       publicData.winners = this.winners;
+       publicData.crewmates = Object.keys(this.crewmates);
+       publicData.imposters = Object.keys(this.imposters);
+    }
     return publicData;
   }
 
   getUserPrivateData(username) {
-    const privateData = this.getGamePrivateData();
-    this.hasPlayer(username) && (privateData.players[username] = this.players[username].getUserPrivateData());
-    return privateData;
+    if (this.hasPlayer(username)) {
+      const privateData = this.getGamePrivateData();
+      const player = this.players[username];
+      const userData = privateData.players[username] = player.getUserPrivateData();
+      userData.tasks = this.getPublicTaskInfo(player.tasks);
+      userData.role = this.started ? (username in this.crewmates ? "CREWMATE" : "IMPOSTER") : "UNSET";
+      userData.pendingReport = player.pendingReport;
+      if (username in this.imposters) {
+        userData.imposters = Object.keys(this.imposters);
+        userData.pendingVictim = player.pendingVictim;
+        userData.killTimer = player.killTimer;
+        userData.victims = player.victims;
+      }
+      if (this.inMeeting) {
+        if (this.votingTimer <= 0) {
+
+        } else {
+          privateData.myVote = player.votingChoice;
+        }
+      }
+      return privateData;
+    }
   }
 
   getHostData() {
@@ -157,16 +228,16 @@ module.exports = class Game {
   }
 
   close() {
-    let anySockets = false;
-    Object.values(this.players).forEach(player => {
-      player.socket && (anySockets = true) && player.socket.disconnect();
-    });
     console.log("GAME CLOSE",this.getIndexVariable());
-    // anySockets && this.gameRoomIO.emit("gameEnded");
-    // TODO: ^ emit ending unnecessary ?? because disconnected
+    this.gameRoomIO && this.gameRoomIO.emit("gameClosed");
+    Object.values(this.players).forEach(player => {
+      player.socket && player.socket.disconnect();
+    });
+    Object.values(this.tasks).forEach(task => {
+      task.socket && task.socket.disconnect();
+    });
     // TODO: more deletion logic for task sockets?
     delete globals.games[this.getIndexVariable()];
-    clearInterval(this.pingIntervalID);
     globals.rootIO.of("/lobby").emit("removeGame", { game:this.getPublicData() });
     return true;
   }
@@ -176,7 +247,7 @@ module.exports = class Game {
   }
 
   getPlayer(username) {
-    return username && (username in this.players) && this.players[username];
+    return this.hasPlayer(username) && this.players[username];
   }
 
   addPlayer({socket, username} = {}) {
@@ -191,7 +262,7 @@ module.exports = class Game {
     this.updateImposterLimit();
   }
 
-  updatePlayer({socket, username} = {}) {
+  updatePlayerSocket({socket, username} = {}) {
     if (!socket || !username || !this.hasPlayer(username)) {
       throw new Error("Invalid player join attempt!");
     }
@@ -217,12 +288,21 @@ module.exports = class Game {
       console.log("\t", player.active, "|", player.wasActive);
       return false;
     }
-    console.log("player register success -- \n\t", username, "|", player.username, "\n\t", player.socketAddress, "|", socketRemoteIP(socket), "\n\t", player.active, "|", player.wasActive);
+    // console.log("player register success -- \n\t", username, "|", player.username, "\n\t", player.socketAddress, "|", socketRemoteIP(socket), "\n\t", player.active, "|", player.wasActive);
     player.socket && player.socket.disconnect();
     player.socket = socket;
     player.socketID = socket.id;
     this.gameRoomIO = socket.nsp;
     player.active = socket && socket.connected;
+    if (this.started && !this.ended) {
+      if (player.alive) {
+        socket.join("alive");
+        username in this.crewmates && socket.join("crewmates");
+        username in this.imposters && socket.join("imposters");
+      } else {
+        socket.join("ghosts");
+      }
+    }
     return true;
   }
 
@@ -254,13 +334,19 @@ module.exports = class Game {
       return false;
     }
     // TODO: add more remove logic (unassigning tasks and stuff, close socket)
+    this.started && !this.ended && this.killPlayer(username);
     delete this.players[username];
+    delete this.crewmates[username];
+    delete this.imposters[username];
+    delete this.ghosts[username];
+    player.socket && player.socket.disconnect();
     !this.started && this.updateImposterLimit();
     return player;
   }
 
   sendPlayerUpdate(player, eventName = "playerInfo") {
     this.gameRoomIO && this.gameRoomIO.to("players").emit(eventName, { player: player.getGamePrivateData() });
+    player.socket && player.socket.emit("playerInfo", { player: player.getUserPrivateData() })
   }
 
   numActivePlayers() {
@@ -286,16 +372,27 @@ module.exports = class Game {
     const ruleName = '# imposters';
     const rule = this.rules[ruleName];
     rule.max = Math.floor(Object.keys(this.players).length / 3) || 1;
-    rule.value = Math.min(Math.max(rule.value, rule.min), rule.max);
+    rule.value = clamp(rule.min, rule.value, rule.max);
     this.emitRuleUpdate(ruleName);
   }
 
+  getSortedTasks() {
+    const tasks = Object.values(this.tasks);
+    const sorted = {common: [], short: [], long: []};
+    tasks.forEach(task => {
+      sorted[task.format].push(task);
+    });
+    return sorted;
+  }
+
   updateTaskRuleLimits() {
+    const sorted = this.getSortedTasks();
     ['common', 'short', 'long'].forEach(format => {
       const ruleName = upperFirstCharOnly(format) + " Tasks";
       const rule = this.rules[ruleName];
-      rule.max = Math.min(rule.max, this.tasks[format].length);
-      rule.value = Math.min(Math.max(rule.value, rule.min), rule.max);
+      rule.max = Math.floor(sorted[format].length / (format === 'common' ? 1 : 2));
+      !rule.max && sorted[format].length && (rule.max = 1);
+      rule.value = clamp(rule.min, rule.value, rule.max);
       this.emitRuleUpdate(ruleName);
     });
   }
@@ -324,17 +421,481 @@ module.exports = class Game {
     rule.value !== oldValue && this.emitRuleUpdate(ruleName);
   }
 
+  registerTaskSocket(task, socket) {
+    this.tasks[task.qrID].online = true;
+    this.tasks[task.qrID].socket = socket;
+    this.gameRoomIO && this.gameRoomIO.to("players").emit("taskStatus", {taskname: task.taskname, taskStatus: {online: true}});
+    return true;
+  }
+
+  unregisterTaskSocket(task) {
+    this.tasks[task.qrID].online = false;
+    this.tasks[task.qrID].socket = null;
+    this.gameRoomIO && this.gameRoomIO.to("players").emit("taskStatus", {taskname: task.taskname, taskStatus: {online: false}});
+  }
+
+  resetGame() {
+    this.started = false;
+    this.ended = false;
+    this.inMeeting = false;
+    this.meetingInfo = null;
+    this.winners = null;
+    this.crewmates = {};
+    this.imposters = {};
+    this.ghosts = {};
+    Object.values(this.players).forEach(player => {
+      player.reset();
+      this.sendPlayerUpdate(player);
+    });
+    clearInterval(this._votingTimerInterval);
+    this.votes = {};
+    this.ejectedPlayer = null;
+    this.gameRoomIO && this.gameRoomIO.to("players").emit("gameReset");
+  }
+
+  readyToStart() {
+    const _players = Object.values(this.players);
+    const allPlayersReady = _players.length > 3 && _players.every(player => player.ready);
+    const _tasks = Object.values(this.getPhysicalTasks());
+    const allTasksOnline = _tasks.every(task => task.online);
+    return allPlayersReady && allTasksOnline;
+  }
+
   startGame() {
+    if (!this.readyToStart())
+      return;
     this.started = true;
+    const players = Object.values(this.players);
+    this.numPlayers = players.length;
+    this.numImposters = this.rules['# imposters'].value;
+    this.numCrewmates = this.numPlayers - this.numImposters;
+    const imposters = getRandomSubarray(players, this.numImposters);
+    this.imposters = Object.fromEntries(imposters.map(player => [player.username, player]));
+    const crewmates = players.filter(player => !(player.username in this.imposters));
+    this.crewmates = Object.fromEntries(crewmates.map(player => [player.username, player]));
+
+    const commonTasksToAssign = this.distributeTasks();
+
+    const initialKillTimer = this.setupImposters(commonTasksToAssign);
+
+    players.forEach(player => {
+      player.socket && player.socket.join("alive");
+    });
+
+    imposters.forEach(imposter => {
+      imposter.socket && imposter.socket.join("imposters");
+      imposter.killTimer = initialKillTimer;
+      imposter.victims = [];
+    });
+
+    crewmates.forEach(crewmate => {
+      crewmate.socket && crewmate.socket.join("crewmates");
+    });
+
+    this.gameRoomIO && this.gameRoomIO.to("crewmates").emit("gameStarted", {role: "CREWMATE"});
+    this.gameRoomIO && this.gameRoomIO.to("imposters").emit("gameStarted", {role: "IMPOSTER", imposters: Object.keys(this.imposters), killTimer: initialKillTimer, victims: []});
+    crewmates.forEach(player => {
+      player.socket && player.socket.emit("allAssignedTasksInfo", { tasks: this.getPublicTaskInfo(player.tasks) });
+    });
+    imposters.forEach(player => {
+      player.socket && player.socket.emit("allAssignedTasksInfo", { tasks: this.getPublicTaskInfo(player.tasks) });
+    });
+  }
+
+  distributeTasks() {
     const commonTaskCount = this.rules['Common Tasks'].value;
     const shortTaskCount = this.rules['Short Tasks'].value;
     const longTaskCount = this.rules['Long Tasks'].value;
     const tasksPerPlayer = commonTaskCount + shortTaskCount + longTaskCount;
-    this.numPlayers = Object.keys(this.players).length;
-    this.totalTaskCount = tasksPerPlayer * this.numPlayers;
-    Object.values(this.players).forEach(player => {
-      player.assignedTasks = [];
+    // this.totalTaskCount = tasksPerPlayer * this.numCrewmates;
+    const sortedTasks = this.getSortedTasks();
+    const commonTaskQRs = Object.values(sortedTasks.common).map(task => task.qrID);
+    const commonTasksToAssign = getRandomSubarray(commonTaskQRs, clamp(0, commonTaskCount, commonTaskQRs.length));
+    const shortTaskQRs = Object.values(sortedTasks.short).map(task => task.qrID);
+    const shortTasksToAssign = getRandomSubarray(shortTaskQRs, clamp(0, shortTaskCount * this.numCrewmates, shortTaskQRs.length));
+    const numShortToAssign = Math.floor(shortTasksToAssign.length / this.numCrewmates);
+    const extraShortTasksNeeded = shortTaskCount - numShortToAssign;
+    const longTaskQRs = Object.values(sortedTasks.long).map(task => task.qrID);
+    const longTasksToAssign = getRandomSubarray(longTaskQRs, clamp(0, longTaskCount * this.numCrewmates, longTaskQRs.length));
+    const numLongToAssign = Math.floor(longTasksToAssign.length / this.numCrewmates);
+    const extraLongTasksNeeded = longTaskCount - numLongToAssign;
 
+
+    Object.values(this.crewmates).forEach(player => {
+      // player.tasks = {};
+      commonTasksToAssign.forEach(qrID => player.tasks[qrID] = { ...DEFAULT_IMCOMPLETE_TASK });
+      for (let i = 0; i < numShortToAssign; i++) {
+        let shortTaskQR = shortTasksToAssign.pop();
+        player.tasks[shortTaskQR] = { ...DEFAULT_IMCOMPLETE_TASK };
+      }
+      if (extraShortTasksNeeded) {
+        for (let i = 0; i < extraShortTasksNeeded; i++) {
+          let shortTaskQR = shortTaskQRs[Math.floor(Math.random() * shortTaskQRs.length)];
+          while (shortTaskQR in player.tasks) {
+            shortTaskQR = shortTaskQRs[Math.floor(Math.random() * shortTaskQRs.length)];
+          }
+          player.tasks[shortTaskQR] = { ...DEFAULT_IMCOMPLETE_TASK };
+        }
+      }
+      for (let i = 0; i < numLongToAssign; i++) {
+        let longTaskQR = longTasksToAssign.pop();
+        player.tasks[longTaskQR] = { ...DEFAULT_IMCOMPLETE_TASK };
+      }
+      if (extraLongTasksNeeded) {
+        for (let i = 0; i < extraLongTasksNeeded; i++) {
+          let longTaskQR = longTaskQRs[Math.floor(Math.random() * longTaskQRs.length)];
+          while (longTaskQR in player.tasks) {
+            longTaskQR = longTaskQRs[Math.floor(Math.random() * longTaskQRs.length)];
+          }
+          player.tasks[longTaskQR] = { ...DEFAULT_IMCOMPLETE_TASK };
+        }
+      }
     });
+    return commonTasksToAssign;
   }
+
+  setupImposters(commonTasksToAssign) {
+    const commonTaskCount = this.rules['Common Tasks'].value;
+    const shortTaskCount = this.rules['Short Tasks'].value;
+    const longTaskCount = this.rules['Long Tasks'].value;
+    const sortedTasks = this.getSortedTasks();
+    Object.values(this.imposters).forEach(player => {
+      commonTasksToAssign.forEach(qrID => player.tasks[qrID] = { ...DEFAULT_IMCOMPLETE_TASK });
+      getRandomSubarray(sortedTasks.short, shortTaskCount).forEach(shortTask => player.tasks[shortTask.qrID] = { ...DEFAULT_IMCOMPLETE_TASK });
+      getRandomSubarray(sortedTasks.long, longTaskCount).forEach(longTask => player.tasks[longTask.qrID] = { ...DEFAULT_IMCOMPLETE_TASK });
+    });
+    const initialKillTimer = Math.ceil(this.rules["Kill Cooldown"].value / 10) * 5;
+    return initialKillTimer;
+  }
+
+  readyForActions() {
+    return this.started && !this.ended && !this.inMeeting;
+  }
+
+  checkGameEnded() {
+    if (!this.started || this.ended) {
+      return false;
+    }
+    const crewmates = Object.values(this.crewmates).filter(crewmate => crewmate.alive);
+    const imposters = Object.values(this.imposters).filter(imposter => imposter.alive);
+    if (imposters.length === 0 || crewmates.every(crewmate => Object.values(crewmate.tasks).every(task => task.completed))) {
+      this.crewmatesWin();
+    } else if (crewmates.length <= imposters.length) {
+      this.impostersWin();
+    }
+    if (this.winners) {
+      this.ended = true;
+      imposters.forEach(imposter => {
+        imposter.clearKillTimer();
+      });
+      this.gameRoomIO && this.gameRoomIO.emit("gameEnded", {
+        winners: this.winners,
+        crewmates: Object.keys(this.crewmates),
+        imposters: Object.keys(this.imposters)
+      });
+      return true;
+    }
+    return false;
+  }
+
+  crewmatesWin() {
+    this.winners = "CREWMATES";
+  }
+
+  impostersWin() {
+    this.winners = "IMPOSTERS";
+  }
+
+  notifyGhosts(newGhost) {
+    this.gameRoomIO && this.gameRoomIO.to("ghosts").emit("newGhost", { ghost: fieldsFromObject(newGhost, ['username']) });
+  }
+
+  killPlayer(username) {
+    if (!this.hasPlayer(username)) {
+      return false;
+    }
+    const player = this.players[username];
+    if (!player.alive) {
+      return false;
+    }
+    let ret;
+    username in this.crewmates && (ret = this.killCrewmate(username));
+    username in this.imposters && (ret = this.killImposter(username));
+    if (!ret) {
+      return false;
+    }
+    return true;
+  }
+
+  killCrewmate(username) {
+    if (!this.hasPlayer(username)) {
+      return false;
+    }
+    if (!(username in this.crewmates)) {
+      return false;
+    }
+    const crewmate = this.crewmates[username];
+    if (!crewmate.alive) {
+      return false;
+    }
+    crewmate.alive = false;
+    Object.entries(crewmate.tasks).forEach(taskEntry => {
+      const [ qrID, task ] = taskEntry;
+      const gameTask = this.tasks[qrID];
+      if (task.active) {
+        if (gameTask.physicalDeviceID) {
+          task.socket && task.socket.emit("evictPlayer", { username });
+        }
+      }
+      task.completed = true;
+      task.active = false;
+    });
+    if (crewmate.socket) {
+      crewmate.socket.leave("alive");
+      crewmate.socket.leave("crewmates");
+      crewmate.socket.join("ghosts");
+      crewmate.socket.emit("killedByImposter", { player: {alive: false, tasks: this.getPublicTaskInfo(crewmate.tasks)} });
+      // this.sendPlayerUpdate(crewmate, "killedByImposter");
+    }
+    this.notifyGhosts(crewmate);
+    // delete this.crewmates[username];
+    this.ghosts[username] = crewmate;
+    this.checkGameEnded();
+    return true;
+  }
+
+  killImposter(username) {
+    if (!this.hasPlayer(username)) {
+      return false;
+    }
+    const imposter = this.imposters[username];
+    if (!imposter.alive) {
+      return false;
+    }
+    imposter.alive = false;
+    if (imposter.socket) {
+      imposter.socket.leave("alive");
+      // imposter.socket.leave("imposter");
+      imposter.socket.join("ghosts");
+      imposter.socket.emit("killedByImposter", { player: {alive: false, tasks: this.getPublicTaskInfo(imposter.tasks)} });
+      // this.sendPlayerUpdate(imposter, "killedByImposter");
+    }
+    this.notifyGhosts(imposter);
+    // delete this.imposters[username];
+    this.ghosts[username] = imposter;
+    this.checkGameEnded();
+    return true;
+  }
+
+  /**
+   * triggered when an imposter attemps to kill a crewmate
+   * @param  {[type]} imposterName [description]
+   * @param  {[type]} crewmateName [description]
+   * @return {[type]}              [description]
+   */
+  attemptImposterKill(imposterName, crewmateName) {
+    const imposter = this.imposters[imposterName];
+    const crewmate = this.crewmates[crewmateName];
+    if (!imposter || !crewmate || !imposter.alive || !crewmate.alive) {
+      return false;
+    }
+    if (imposter.killTimer > 0) {
+      return false;
+    }
+    imposter.pendingVictim = crewmateName;
+    imposter.socket && imposter.socket.emit("pendingVictim", {pendingVictim: crewmateName});
+    return true;
+  }
+
+  unreadyImposterKill(imposterName) {
+    const imposter = this.imposters[imposterName];
+    if (!imposter || !imposter.alive) {
+     return false;
+    }
+    if (!imposter.pendingVictim) {
+     return false;
+    }
+    imposter.pendingVictim = null;
+    imposter.socket && imposter.socket.emit("pendingVictim", {pendingVictim: null});
+    return true;
+  }
+
+  receiveImposterKill(crewmateName) {
+    const crewmate = this.crewmates[crewmateName];
+    if (!crewmate || !crewmate.alive) {
+      return false;
+    }
+    const imposter = Object.values(this.imposters).find(imposter => imposter.pendingVictim === crewmateName);
+    if (!imposter || !imposter.alive) {
+      return false;
+    }
+    if (imposter.killTimer > 0) {
+      imposter.pendingVictim = null;
+      return false;
+    }
+    if (!this.killCrewmate(crewmateName)) {
+      return false;
+    }
+    imposter.pendingVictim = null;
+    imposter.victims.push(crewmateName);
+    if (!this.ended) {
+      imposter.socket && imposter.socket.emit("killSuccess", {victim: crewmateName});
+      imposter.killTimer = this.rules["Kill Cooldown"].value;
+    }
+    return true;
+  }
+
+  attemptReport(reporterName, bodyName) {
+    // console.log('attemptReport');
+    const reporter = this.players[reporterName];
+    const crewmate = this.crewmates[bodyName];
+    if (!reporter || !crewmate || !reporter.alive) {
+      return false;
+    }
+    reporter.pendingReport = bodyName;
+    reporter.socket && reporter.socket.emit("pendingReport", {pendingReport: bodyName});
+    return true;
+  }
+
+  unreadyReport(reporterName) {
+    const reporter = this.players[reporterName];
+    if (!reporter || !reporter.alive) {
+     return false;
+    }
+    if (!reporter.pendingReport) {
+     return false;
+    }
+    reporter.pendingReport = null;
+    reporter.socket && reporter.socket.emit("pendingReport", { pendingReport: null });
+    return true;
+  }
+
+  receiveReport(crewmateName) {
+    const crewmate = this.crewmates[crewmateName];
+    if (!crewmate || crewmate.alive) {
+      return false;
+    }
+    const reporter = Object.values(this.players).find(player => player.pendingReport === crewmateName);
+    if (!reporter || !reporter.alive) {
+      return false;
+    }
+    reporter.pendingReport = null;
+    // reporter.socket && reporter.socket.emit("reportSuccess", {victim: crewmateName});
+    crewmate.publiclyAlive = false;
+    this.gameRoomIO && this.gameRoomIO.to("players").emit("deadBodyReported", { victim: crewmateName });
+    this.setupMeeting({ reason: "REPORT", victim: crewmateName, reporter: reporter.username });
+    return true;
+  }
+
+  setupMeeting(meetingInfo) {
+    const reason = meetingInfo.reason;
+    switch (reason) {
+      case "REPORT":
+        const { victim, reporter } = meetingInfo;
+        break;
+      case "EMERGENCY":
+        const { caller } = meetingInfo;
+        break;
+      default:
+        break;
+    }
+    // TODO: send task bar update if rule is meetings
+    this.gameRoomIO && this.gameRoomIO.to("players").emit("meeting", { meetingInfo, votingTimer: this.rules["Voting Time"].value });
+    this.inMeeting = true;
+    this.meetingInfo = meetingInfo;
+    this.votingTimer = this.rules["Voting Time"].value;
+    this.votes = Object.fromEntries(Object.values(this.players).filter(player => player.alive).map(player => [
+      player.username,
+      []
+    ]));
+    this.votes['**SKIP_VOTE**'] = [];
+    // this.votes["**ABSTAIN**"] = Object.keys(this.players).filter(playerName => this.players[playerName].alive);
+    return true;
+  }
+
+  get votingTimer() {
+    return this._votingTimer;
+  }
+
+  set votingTimer(newVotingTimer) {
+    clearInterval(this._votingTimerInterval);
+    this._votingTimer = newVotingTimer;
+    this.gameRoomIO && this.gameRoomIO.to("players").emit("votingTimer", {votingTimer: this._votingTimer});
+    const step = 1000;
+    const decr = step/1000;
+    this._votingTimerInterval = setInterval(() => {
+      this._votingTimer -= decr;
+      this._votingTimer % 1 === 0 && this.gameRoomIO && this.gameRoomIO.to("players").emit("votingTimer", {votingTimer: this._votingTimer});
+      if (this._votingTimer === 0) {
+        clearInterval(this._votingTimerInterval);
+        this.tallyVotes();
+      }
+    }, step);
+  }
+
+  /**
+   * votingChoice used to determine already voted
+   * @param  {[type]} voterName  [description]
+   * @param  {[type]} choiceName [description]
+   * @return {[type]}            [description]
+   */
+  castVote(voterName, choiceName) {
+    const voter = this.players[voterName];
+    const choice = this.players[choiceName];
+    if (!voter || !voter.alive || voter.votingChoice || (choiceName !== "**SKIP_VOTE**" && (!choice || !choice.alive))) {
+      return false;
+    }
+    //TODO: dont allow double voting/acknowledge vote, finish early
+    this.votes[choiceName].push(this.rules["Anonymous Votes"].value ? this.votes[choiceName].length + 1 : voterName);
+    // this.votes["**ABSTAIN**"] = this.votes["**ABSTAIN**"].filter(abstainerName => abstainerName !== voterName);
+    voter.votingChoice = choiceName;
+    voter.socket && voter.socket.emit("iVoted", {choice: choiceName});
+    this.gameRoomIO && this.gameRoomIO.to("players").emit("voteCasted", { voter: voterName });
+    if (Object.values(this.players).filter(player => player.alive && !player.votingChoice).length === 0) {
+      this.tallyVotes();
+    }
+  }
+
+  tallyVotes() {
+    clearInterval(this._votingTimerInterval);
+    // console.log('finish voting\n', this.votes);
+    Object.values(this.players).forEach(player => {
+      player.votingChoice = null;
+    });
+    this.gameRoomIO && this.gameRoomIO.to("players").emit("votes", {votes: this.votes});
+    setTimeout(() => {
+      this.votes["**NOBODY**"] = [];
+      this.ejectedPlayer = Object.keys(this.votes).reduce((a, b) => this.votes[a].length > this.votes[b].length ? a : b, "**NOBODY**");
+      this.ejectedPlayer === "**SKIP_VOTE**" && (this.ejectedPlayer = "**NOBODY**");
+      this.votes = {};
+      const ejectedPlayerData = {name: this.ejectedPlayer};
+      if (this.rules["Confirm Ejects"].value) {
+        ejectedPlayerData.role = this.ejectedPlayer in this.imposters ? "IMPOSTER" : "CREWMATE";
+        ejectedPlayerData.remaining = Object.values(this.imposters).filter(imposter => imposter.alive).length;
+      }
+      this.gameRoomIO && this.gameRoomIO.to("players").emit("eject", { ejectedPlayer: ejectedPlayerData });
+      setTimeout(() => {
+        if (this.ejectedPlayer in this.players) {
+          const ejected = this.players[this.ejectedPlayer];
+          this.killPlayer(ejected.username);
+          ejected.publiclyAlive = false;
+        }
+        this.inMeeting = false;
+        this.ejectedPlayer = null;
+        if (!this.ended) {
+          this.gameRoomIO && this.gameRoomIO.to("players").emit("resume", {wasEjected: ejectedPlayer});
+          Object.values(this.imposters).filter(imposter => imposter.alive).forEach(imposter => {
+            imposter.killTimer = this.rules["Kill Cooldown"].value;
+          });
+        }
+      }, EJECTION_TIME);
+    }, POST_VOTING_DELAY);
+  }
+
+  // TODO: method for receiving a qrscan
+  //        physical task: validate -> tell task it's being worked on
+  //        mobile task: validate -> tell user to pull up task ui
+  //          must scan again once completed (prove they didn't just leave)
+  // TODO: update task bar completion and emit updates (dependent on rule)
+
 }

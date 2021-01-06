@@ -14,6 +14,16 @@ import { pullTaskManagerDataAction, updateTaskManagerDataAction } from "state-ma
 
 import { UserTaskDescription, MobileTaskDescription } from './task-description';
 
+const areDifferent = (task1, task2) =>
+  // console.log(task1, task2) ||
+  !task1 || !task2
+  || task1.id !== task2.id
+  || task1.taskname !== task2.taskname
+  || task1.maxTime !== task2.maxTime
+  || task1.format !== task2.format
+  || task1.canBeNonVisual !== task2.canBeNonVisual
+  || task1.enabled !== task2.enabled;
+
 const userTaskListReducer = (state, action) => {
   const { updateID, field, newValue, reset, deleteID, create } = action;
   if (reset) {
@@ -39,6 +49,7 @@ const userTaskListReducer = (state, action) => {
     // ^^ does not update state because of Object.is
     return state.map(task => task.id !== updateID ? task : ({ ...task, [field]: newValue, saved: false }));
   }
+  console.log("unknown update action", state, action);
 };
 
 const TaskManager = () => {
@@ -51,35 +62,15 @@ const TaskManager = () => {
   const history = useHistory();
 
   const anyUnsaved = useMemo(() =>
+    // console.log(userTaskData, state.taskManager.userTasks) ||
     userTaskData.length !== state.taskManager.userTasks.length
-    || userTaskData.some(task => !task.saved)
+    || mobileTaskIDs.length !== state.taskManager.mobileTasks.length
+    // || userTaskData.some(task => !state.taskManager.userTasks.find(t => t.id === task.id))
+    || userTaskData.some(task => !task.saved && areDifferent(task, state.taskManager.userTasks.find(t => t.id === task.id)))
+    || state.taskManager.userTasks.some(task => !userTaskData.find(t => t.id === task.id))
     || mobileTaskIDs.some(id => !state.taskManager.mobileTasks.includes(id))
     || state.taskManager.mobileTasks.some(id => !mobileTaskIDs.includes(id))
-  , [userTaskData, mobileTaskIDs, state.taskManager.mobileTasks]);
-
-  useEffect(() => {
-    const beforeUnload = (event) => {
-      if (anyUnsaved) {
-        // if (window.confirm(`Are you sure you exit without saving your tasks?`)) {
-        //   console.log("ignore warning!");
-        // } else {
-          event.preventDefault();
-          event.returnValue = '';
-          return '';
-        // }
-      }
-    };
-    window.addEventListener('beforeunload', beforeUnload);
-    // const unblock = history.block(tx => {
-    //   console.log(tx);
-    //   const url = tx.pathname;
-    //
-    // });
-    return () => {
-      window.removeEventListener('beforeunload', beforeUnload);
-      // unblock();
-    };
-  }, [history, anyUnsaved]);
+  , [userTaskData, mobileTaskIDs, state.taskManager.userTasks, state.taskManager.mobileTasks]);
 
   useEffect(() => {
     setUserData(state.user);
@@ -130,7 +121,7 @@ const TaskManager = () => {
     });
   }, []);
 
-  const saveTasks = useCallback((event) => {
+  const saveTasks = useCallback(() => {
     const payload = {
       userTaskData: userTaskData.map(userTask => {
         return userTask;
@@ -142,7 +133,34 @@ const TaskManager = () => {
     });
   }, [userTaskData, mobileTaskIDs, updateTaskManagerData]);
 
-  // console.log(userTaskData);
+  useEffect(() => {
+    const beforeUnload = (event) => {
+      if (anyUnsaved) {
+        // if (window.confirm(`Are you sure you exit without saving your tasks?`)) {
+        //   console.log("ignore warning!");
+        // } else {
+        // console.log('save before leaving');
+        saveTasks();
+        // event.preventDefault();
+        // event.returnValue = 'Are you sure you exit without saving your tasks?';
+        // return 'Are you sure you exit without saving your tasks?';
+        // }
+      }
+      // console.log('leave!');
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+    window.addEventListener('locationchange', beforeUnload);
+    // const unblock = history.block(tx => {
+    //   console.log(tx);
+    //   const url = tx.pathname;
+    //
+    // });
+    return () => {
+      window.removeEventListener('beforeunload', beforeUnload);
+      window.removeEventListener('locationchange', beforeUnload);
+      // unblock();
+    };
+  }, [anyUnsaved, saveTasks]);
 
   return (
     <div className="h-full max-h-fit-borders w-full overflow-y-auto flex flex-col items-center text-white">
@@ -153,7 +171,7 @@ const TaskManager = () => {
       </div>
       <div className="w-full h-20 min-h-fit bg-gray-800 flex items-center justify-center p-3">
         <h2 className="text-xl font-semibold min-h-fit max-w-full">
-          Configure the tasks you like to play with!
+          Configure the tasks you like to play with! <span className="text-base">You should add location to the name field</span>
         </h2>
       </div>
       <div className="w-full h-fill bg-gray-700 bg-clip-border">

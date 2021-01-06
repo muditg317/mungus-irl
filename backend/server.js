@@ -77,14 +77,6 @@ io.use(wrap(passport.initialize()));
 io.use(wrap(passport.session()));
 */
 
-//const games = {};
-// games.push({
-//   od: "fsgrgRE",
-//   taskSocket: [],
-//   host: "host_username",
-// })
-
-
 /*
 io.on("connection", (socket) => {
   console.log("New client connected", socket.id);

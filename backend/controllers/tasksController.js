@@ -17,8 +17,8 @@ const taskPayload = task => ({
   maxTime: task.maxTime,
   physicalDeviceID: task.physicalDeviceID,
   format: task.format,
-  predecessorTasks: task.predecessorTasks.map(predTask => predTask.taskname),
-  successorTasks: task.successorTasks.map(succTask => succTask.taskname),
+  predecessorTasks: (task.predecessorTasks ? task.predecessorTasks.map(predTask => predTask.taskname) : []),
+  successorTasks: (task.successorTasks ? task.successorTasks.map(succTask => succTask.taskname) : []),
   canBeNonVisual: task.canBeNonVisual
 });
 
@@ -26,8 +26,8 @@ const extractSettings = task => ({
   taskname: task.taskname,
   maxTime: task.maxTime,
   format: task.format,
-  predecessorTasks: task.predecessorTasks.map(predTask => predTask.taskname),
-  successorTasks: task.successorTasks.map(succTask => succTask.taskname),
+  predecessorTasks: (task.predecessorTasks ? task.predecessorTasks.map(predTask => predTask.taskname) : []),
+  successorTasks: (task.successorTasks ? task.successorTasks.map(succTask => succTask.taskname) : []),
   canBeNonVisual: task.canBeNonVisual
 });
 
@@ -35,8 +35,8 @@ const applySettings = (target, settings) => {
   target.taskname = settings.taskname,
   target.maxTime = settings.maxTime,
   target.format = settings.format,
-  target.predecessorTasks = settings.predecessorTasks.map(predTask => predTask.taskname),
-  target.successorTasks = settings.successorTasks.map(succTask => succTask.taskname),
+  target.predecessorTasks = (settings.predecessorTasks ? settings.predecessorTasks.map(predTask => predTask.taskname) : []),
+  target.successorTasks = (settings.successorTasks ? settings.successorTasks.map(succTask => succTask.taskname) : []),
   target.canBeNonVisual = settings.canBeNonVisual
 };
 
@@ -170,7 +170,7 @@ module.exports = {
       // TODO: ADD QR ID AND DEVICE ID TO TASK DATA
       tasksToCreate.forEach(task => {
         task.qrID = task.qrID || randStr(7);
-        task.physicalDeviceID = task.physicalDeviceID || randStr(30, 'aA0$');
+        task.physicalDeviceID = task.physicalDeviceID || randStr(30, 'aA0$', {noQuotes: true});
       });
       const newTasks = tasksToCreate.map(taskDatum => new Task({...taskDatum, owner: user._id}));
 
@@ -185,16 +185,16 @@ module.exports = {
       // console.log("TASKS DELETED===", user, deleted, "========Tasks deleted ^^=======");
 
       // const userTaskDataIDs = userTaskData.oldTasks.map(task => task.id);
-      const newUserTasks = savedTasks.reduce((filtered, savedTask) => {
+      const newUserTasks = savedTasks.map((savedTask) => {
         const userTaskDatum = userTaskData.find(userTask => userTask.taskname === savedTask.taskname && userTask.maxTime === savedTask.maxTime);
         // if (userTaskDatum.enabled) {
           // console.log(filtered, userTaskDatum);
-        savedTask.enabled = userTaskDatum.enabled;
+        // savedTask.enabled = userTaskDatum.enabled;
         // }
-        filtered.push(savedTask);
-        return filtered;
+        // filtered.push(savedTask);
+        return { ...(savedTask.toObject()), id: savedTask.id, enabled: userTaskDatum.enabled };
       }, []);
-      user.tasks = newUserTasks.map(task => task._id);
+      user.tasks = newUserTasks.filter(task => task.enabled).map(task => task._id);
 
       let mobileTasks;
       if (request.body.mobileTaskIDs) {

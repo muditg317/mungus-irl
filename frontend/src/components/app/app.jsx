@@ -25,6 +25,8 @@ import { far } from '@fortawesome/free-regular-svg-icons';
 import { fab } from '@fortawesome/free-brands-svg-icons';
 library.add(fas, far, fab);
 
+require('./hacks');
+
 
 export default function App(props) {
   const { state, dispatch } = useContext(store);
