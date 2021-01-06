@@ -20,9 +20,9 @@ module.exports = (rootIO, lobbyIO) => {
     const socketUsername = socket.handshake.query.username || '';
 
 
-    socket.on("test", data => {
-      console.log("test received:", data);
-    });
+    // socket.on("test", data => {
+    //   console.log("test received:", data);
+    // });
 
     socket.on("createGame", async (data, callback) => {
       if (data.authenticated) {

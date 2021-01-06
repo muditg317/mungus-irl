@@ -1,31 +1,9 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import QRCode from 'qrcode';
-
-import { upperFirstCharOnly } from 'utils';
-
-const qrOpts = {
-  errorCorrectionLevel: 'H',
-  version: 3,
-  scale: 6
-};
+import React, {  } from 'react';
 
 export default function GhostScreen(props) {
-  const { players, username, hostname, myPlayer, functions } = props;
-  const { role, tasks } = myPlayer;
+  const { username, myPlayer, totalTasks, completedTasks, functions } = props;
+  const { alive, tasks } = myPlayer;
   const { iGotReported } = functions;
-  // TODO: ^^ add params for sending qrscan result to server (asking for task completion)
-  const [qrCodeDataURL, setQrCodeDataURL] = useState();
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const qrDataURL = await QRCode.toDataURL(username, qrOpts);
-        setQrCodeDataURL(qrDataURL);
-      } catch (error) {
-        console.error(error);
-      } finally {}
-    })();
-  }, [username]);
 
   return (
     <>
@@ -37,7 +15,31 @@ export default function GhostScreen(props) {
           I've been reported!
         </button>
       </div>
-      <div className="hidden py-1 w-full">
+      <div className={`py-1 w-full`}>
+        <div className="flex flex-col">
+          { myPlayer && <div className={`w-full flex flex-row items-center mb-1 last:mb-0 text-white`}>
+            <div className="w-1/2">
+              <p className="text-right align-middle">
+                {`${username} (you) -`}
+              </p>
+            </div>
+            <div className="w-1/2">
+              <div className="ml-1">
+                <p>{`${alive ? "Alive!" : "Dead!"}`}</p>
+              </div>
+            </div>
+          </div> }
+        </div>
+      </div>
+      <div className={`py-1 w-full`}>
+        <div className="flex flex-row items-center justify-between">
+          <p className="mr-1">Task progress:</p>
+          <div className="flex flex-row">
+            {`${completedTasks}/${totalTasks}`}
+          </div>
+        </div>
+      </div>
+      <div className="py-1 w-full">
         <div className="flex flex-col">
           { tasks && Object.keys(tasks).map(taskname => {
             const task = tasks[taskname];

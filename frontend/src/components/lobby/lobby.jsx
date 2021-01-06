@@ -12,7 +12,7 @@ import banner from 'assets/images/mungus-banner.jpg';
 
 export default function Lobby({ openAuthModal }) {
   // console.log("render lobby");
-  const { state, dispatch } = useContext(store);
+  const { state } = useContext(store);
   // const addAvailableGame = useCallback((...args) => addAvailableGameAction(dispatch)(...args), [dispatch]);
   // const removeAvailableGame = useCallback((...args) => removeAvailableGameAction(dispatch)(...args), [dispatch]);
   // const setAvailableGames = useCallback((...args) => setAvailableGamesAction(dispatch)(...args), [dispatch]);

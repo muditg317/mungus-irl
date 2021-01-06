@@ -57,7 +57,7 @@ module.exports = class Player {
     this.pendingReport = null;
     this.pendingVictim = null;
     this.victims = null;
-    clearInterval(this._killTimerInterval);
+    this.clearKillTimer();
   }
 
   get killTimer() {
@@ -89,7 +89,30 @@ module.exports = class Player {
     this.socket && this.socket.emit("readyToKill");
   }
 
+  /**
+   * returns a string representing the reason a meeting cannot be called
+   * @return {[type]} [description]
+   */
+  cannotCallMeeting(emergencyTimer) {
+    if (!this.alive)
+      return "Dead people can't call emergency meetings!";
+    if (this.remainingEmergencies <= 0)
+      return "You can't call any more emergency meetings this game!";
+    if (emergencyTimer > 0)
+      return `You must wait ${emergencyTimer}s before calling an emergency meeting.`;
+    return "";
+  }
+
   toJSON(parentKey) {
+    return JSON.stringify(this, (key, value) => {
+      if (key === 'socket') {
+        return fieldsFromObject(value, ['id','rooms','handshake']);
+      }
+      return value;
+    });
+  }
+
+  toString() {
     return JSON.stringify(this, (key, value) => {
       if (key === 'socket') {
         return fieldsFromObject(value, ['id','rooms','handshake']);

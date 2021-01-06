@@ -3,7 +3,7 @@
   /* transition: opacity 0.1s ease; */
 
   &.modal-inactive {
-    @apply opacity-0 pointer-events-none;
+    @apply opacity-0 pointer-events-none hidden;
   }
   &.modal-active {
     overflow-x: hidden;

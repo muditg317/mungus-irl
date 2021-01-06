@@ -73,13 +73,13 @@ module.exports = {
 
     socket.on("leaveGame", (data, ack) => {
       const { username: leavingUser } = data;
-      console.log("leave game request", gameIndex, username, leavingUser);
+      // console.log("leave game request", gameIndex, username, leavingUser);
       if (username !== leavingUser) {
         return;
       }
       const removedPlayer = game.removePlayer(username);
       if (removedPlayer) {
-        console.log("player removed");
+        // console.log("player removed");
         gameRoomIO.to("players").emit("playerLeave", { player: removedPlayer.getGamePrivateData() });
         ack && ack();
       }
@@ -197,6 +197,32 @@ module.exports = {
       const { choice } = data;
       game.castVote(username, choice);
     });
+
+
+    socket.on("qrScan", data => {
+      if (!game.readyForActions()) {
+        return;
+      }
+      const { qrData } = data;
+      game.acknowledgeQrScan(username, qrData);
+    });
+
+    socket.on("stopMobileTask", data => {
+      if (!game.readyForActions()) {
+        return;
+      }
+      const { mobileTask } = data;
+      game.stopMobileTask(username, mobileTask);
+    });
+
+    socket.on("finishMobileTask", data => {
+      if (!game.readyForActions()) {
+        return;
+      }
+      const { mobileTask } = data;
+      game.finishMobileTask(username, mobileTask);
+    });
+
 
 
     if (socket.isHost) {

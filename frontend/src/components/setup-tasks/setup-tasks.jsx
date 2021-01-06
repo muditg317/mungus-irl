@@ -17,7 +17,7 @@ const qrOpts = {
 };
 
 const mobileIDsToData = (ids) => {
-  return availableMobileTasks.filter(mobileTask => ids.includes(mobileTask.id));
+  return Object.values(availableMobileTasks).filter(mobileTask => ids.includes(mobileTask.id));
 };
 
 const ViewQrCodes = () => {

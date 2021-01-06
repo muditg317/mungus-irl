@@ -9,7 +9,8 @@ const whiteboardInfo = {
   format: 'short',
   predecessorTasks: [],
   successorTasks: [],
-  canBeNonVisual: true
+  canBeNonVisual: true,
+  component: Whiteboard
 }
 
 export default Whiteboard;

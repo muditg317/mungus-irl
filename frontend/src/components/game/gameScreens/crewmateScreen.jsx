@@ -1,16 +1,13 @@
 import React, { useMemo } from 'react';
-// import QRCode from 'qrcode';
+import useQrScanner from 'hooks/useQrScanner';
 
-// const qrOpts = {
-//   errorCorrectionLevel: 'H',
-//   version: 3,
-//   scale: 6
-// };
+import QrScanModal from './qrScanModal';
+import TaskModal from './taskModal';
 
 export default function CrewmateScreen(props) {
-  const { players, username, myPlayer, functions } = props;
+  const { players, username, myPlayer, totalTasks, completedTasks, qrScanIssue, setQrScanIssue, mobileTask, functions } = props;
   const { alive, tasks, pendingReport } = myPlayer;
-  const { sendQrScanResult, reportPlayer, unreadyReport, iGotKilled } = functions;
+  const { sendQrScanResult, reportPlayer, unreadyReport, iGotKilled, stopMobileTask, finishMobileTask } = functions;
   // TODO: ^^ add params for sending qrscan result to server (asking for task completion)
 
   const readyToReport = useMemo(() => !pendingReport, [pendingReport]);
@@ -19,6 +16,13 @@ export default function CrewmateScreen(props) {
           .filter(playerName => players[playerName].publiclyAlive && playerName !== username);
   }, [players, username]);
 
+
+  const { videoRef,
+    canvasRef,
+    scanning,
+    toggleScanning,
+    mode,
+    toggleMode } = useQrScanner(sendQrScanResult);
 
   return (
     <>
@@ -46,11 +50,19 @@ export default function CrewmateScreen(props) {
           </div> }
         </div>
       </div>
+      <div className={`py-1 w-full`}>
+        <div className="flex flex-row items-center justify-between">
+          <p className="mr-1">Task progress:</p>
+          <div className="flex flex-row">
+            {`${completedTasks}/${totalTasks}`}
+          </div>
+        </div>
+      </div>
       <div className="py-1 w-full">
         <div className="flex flex-col">
           { tasks && Object.keys(tasks).map(taskname => {
             const task = tasks[taskname];
-            return <div key={taskname} className={`w-full flex flex-row items-center mb-1 last:mb-0 ${task.completed ? 'text-green-300' : (task.active ? 'text-yellow-300' : 'text-white')}`}>
+            return <div key={taskname} className={`w-full flex flex-row items-center mb-1 last:mb-0 ${task.completed ? 'text-green-300' : (task.active || task.awaitingRescan ? 'text-yellow-300' : 'text-white')}`}>
               <div className="w-1/2">
                 <p className="text-right align-middle">
                   {`${taskname} (${task.format}) -`}
@@ -58,7 +70,7 @@ export default function CrewmateScreen(props) {
               </div>
               <div className="w-1/2">
                 <div className="ml-1">
-                  <p>{`${task.completed ? 'Completed!' : 'Not completed'}`}</p>
+                  <p>{task.awaitingRescan ? "Needs rescan!" : `${task.completed ? 'Completed!' : 'Not completed'}`}</p>
                 </div>
               </div>
             </div>
@@ -80,7 +92,19 @@ export default function CrewmateScreen(props) {
           </div>}
         </div>
       </div>
-      {/*TODO:add scan task qr code button (fake it for imposter)*/}
+      <div className="w-full h-fill mt-auto"></div>
+      { alive && qrScanIssue && <div className="p-2 flex flex-col items-center justify-center">
+        <p className={`p-2 text-lg text-center align-middle text-white`} onClick={() => setQrScanIssue(false)}>
+          {qrScanIssue}
+        </p>
+      </div> }
+      { alive && <div className="p-2 flex flex-col items-center justify-center">
+        <button className={`pb-3 pt-2.5 px-4 rounded-full border-none bg-gray-${!scanning ? '300' : '500'} text-3xl font-bold text-center align-middle ${!scanning ? 'text-red-500' : 'text-gray-700'}`} disabled={scanning} onClick={() => setQrScanIssue(false) || toggleScanning()}>
+          Scan a QR Code!
+        </button>
+      </div> }
+      { <QrScanModal { ...{ videoRef, canvasRef, mode, toggleMode } } shown={alive && scanning} onExit={() => toggleScanning()} /> }
+      { <TaskModal { ...{ mobileTask, iGotKilled } } finish={finishMobileTask} shown={alive && !!mobileTask} onExit={(finished = false) => !finished && stopMobileTask()} /> }
     </>
     );
 }

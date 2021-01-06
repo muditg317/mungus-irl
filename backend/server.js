@@ -56,44 +56,25 @@ globals.rootIO = io;
 require('./sockets')(io);
 
 if (NODE_ENV !== 'development') {
-  setInterval(() => {
-    console.log("GAME INFO:");
-    console.log(require('util').inspect(globals.games, { depth: 2 }));
-  }, 30000);
-  setInterval(() => {
-    console.log("IO info");
-    console.log(Object.keys(io.sockets.sockets));
-    io._nsps.forEach(nsp => {
-      nsp.sockets.forEach(socket => {
-        console.log(`socket at |${nsp.name}|: id:${socket.id}|`);
-      });
-    });
-  }, 30000);
+  // setInterval(() => {
+  //   console.log("GAME INFO:");
+  //   console.log(require('util').inspect(globals.games, { depth: 2 }));
+  // }, 30000);
+  // setInterval(() => {
+  //   console.log("IO info");
+  //   console.log(Object.keys(io.sockets.sockets));
+  //   io._nsps.forEach(nsp => {
+  //     nsp.sockets.forEach(socket => {
+  //       console.log(`socket at |${nsp.name}|: id:${socket.id}|`);
+  //     });
+  //   });
+  // }, 30000);
 }
 
 /* SHOULD BE FOR HOSTS ONLY
 io.use(wrap(sessionMiddleware));
 io.use(wrap(passport.initialize()));
 io.use(wrap(passport.session()));
-*/
-
-/*
-io.on("connection", (socket) => {
-  console.log("New client connected", socket.id);
-  // console.log(require('util').inspect(socket, { depth: 1 }));
-// if socket is a player {
-//   socket.on(stast task, () => {
-//     tasksocket.sendmessage(play is doing you);
-//   })
-// }
-// if socket is task {
-//   add to tasksockets
-// }
-  socket.on('message', data => {
-    // if data.type === STAST TASK)
-    //   tasksockets[data.taskID].send(message, data);
-    console.log(data);
-  })
 */
 
 server.listen(PORT, () => {

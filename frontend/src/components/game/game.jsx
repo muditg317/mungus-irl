@@ -21,10 +21,12 @@ import EndScreen from './endScreen';
 import {store} from 'state-management';
 import {checkValidAuthToken, Utils} from 'utils';
 
+import availableMobileTasks from 'components/mobile-tasks';
+
 const fasSignal = ['fas', 'signal'];
 
 const myPlayerReducer = (state = {}, action) => {
-  const { field, newValue, reset, globalData } = action;
+  const { field, newValue, reset, globalData, task } = action;
   if (reset) {
     return reset;
   }
@@ -36,7 +38,10 @@ const myPlayerReducer = (state = {}, action) => {
     // console.log('update myplayer field', field, newValue);
     return { ...state, [field]: typeof newValue === "function" ? newValue(state[field]) : newValue };
   }
-  console.log("unknown myplayer update action", state, action);
+  if (task) {
+    return { ...state, tasks: { ...state.tasks, [task.taskname]: { ...state.tasks[task.taskname], ...task.status } } };
+  }
+  Utils.isDev() && console.log("unknown myplayer update action", state, action);
   return state;
 };
 
@@ -55,13 +60,13 @@ const playersReducer = (state, action) => {
   if (ejected) {
     return ejected in state ? { ...state, [ejected]: { ...state[ejected], publiclyAlive: false } } : state;
   }
-  console.log("unknown all players update action", state, action);
+  Utils.isDev() && console.log("unknown all players update action", state, action);
   return state;
 };
 
 export default function Game() {
   // console.log("render game");
-  const {state, dispatch} = useContext(store);
+  const { state } = useContext(store);
   const location = useLocation();
   // const history = useHistory();
   const match = useRouteMatch("/game/:hostname");
@@ -123,6 +128,11 @@ export default function Game() {
       };
     });
   }, [setTasks]);
+  const updateTasksDatum = useCallback((taskname, status) => {
+    updateMyPlayer({ task: { taskname, status } });
+  }, [updateMyPlayer]);
+  const [ totalTasks, setTotalTasks ] = useState();
+  const [ completedTasks, setCompletedTasks ] = useState();
   const [ ended, setEnded ] = useState(false);
   const [ inMeeting, setInMeeting ] = useState(false);
   const [ meetingInfo, setMeetingInfo ] = useState({});
@@ -144,6 +154,8 @@ export default function Game() {
       rules: gameRules,
       tasksStatus: gameTasksStatus,
       started: gameStarted,
+      totalTasks: gameTotalTasks,
+      completedTasks: gameCompletedTasks,
       ended: gameEnded,
       inMeeting: gameInMeeting,
       meetingInfo: gameMeetingInfo,
@@ -163,6 +175,8 @@ export default function Game() {
     gameRules !== undefined && setRules(gameRules);
     gameTasksStatus !== undefined && setTasksStatus(gameTasksStatus);
     gameStarted !== undefined && setStarted(gameStarted);
+    gameTotalTasks !== undefined && setTotalTasks(gameTotalTasks);
+    gameCompletedTasks !== undefined && setCompletedTasks(gameCompletedTasks);
     gameEnded !== undefined && setEnded(gameEnded);
     gameInMeeting !== undefined && setInMeeting(gameInMeeting);
     gameMeetingInfo !== undefined && setMeetingInfo(gameMeetingInfo);
@@ -178,6 +192,9 @@ export default function Game() {
     // gameRole !== undefined ? setRole(gameRole) : (gamePlayers[username] && gamePlayers[username].role && setRole(gamePlayers[username].role));
     // gameTasks !== undefined && setTasks(gameTasks);
   }, [hostname, setPlayers]);
+
+  const [ qrScanIssue, setQrScanIssue ] = useState();
+  const [ mobileTask, setMobileTask ] = useState();
 
   useEffect(() => {
     if (!hostname || !gameToken) {
@@ -269,6 +286,11 @@ export default function Game() {
       updateMyPlayer({field: 'pendingReport', newValue: null});
     });
     socketRef.current.on('meeting', data => {
+      if (data.newBodies && data.newBodies.length) {
+        data.newBodies.forEach(deadName => {
+          updatePlayers({ user: { updateUsername: deadName, field: 'publiclyAlive', newValue: false } });
+        });
+      }
       setInMeeting(true);
       setMeetingInfo(data.meetingInfo);
       setVotingTimer(data.votingTimer);
@@ -303,6 +325,36 @@ export default function Game() {
       setVotingTimer();
       setCastedVotes();
     });
+    socketRef.current.on('badQrScan', data => {
+      setQrScanIssue(data.issue);
+    });
+    socketRef.current.on('beginTask', data => {
+      updateTasksDatum(data.taskname, {completed: false, active: true, awaitingRescan: undefined});
+      if (data.taskname in availableMobileTasks) {
+        setMobileTask(availableMobileTasks[data.taskname]);
+        // TODO: figure out logic for clearing this state in meetings etc
+      }
+    });
+    socketRef.current.on('stopTask', data => {
+      updateTasksDatum(data.taskname, {completed: false, active: false, awaitingRescan: undefined});
+      if (data.taskname in availableMobileTasks) {
+        setMobileTask();
+      }
+    });
+    socketRef.current.on('awaitingRescan', data => {
+      updateTasksDatum(data.taskname, {completed: false, active: false, awaitingRescan: true});
+      setMobileTask();
+    });
+    socketRef.current.on('taskComplete', data => {
+      updateTasksDatum(data.taskname, {completed: true, active: false, awaitingRescan: undefined});
+      if (data.taskname in availableMobileTasks) {
+        setMobileTask();
+      }
+    });
+    socketRef.current.on('taskBarStatus', data => {
+      setTotalTasks(data.totalTasks);
+      setCompletedTasks(data.completedTasks);
+    });
     socketRef.current.on('gameEnded', data => {
       setStarted(true);
       setEnded(true);
@@ -311,8 +363,7 @@ export default function Game() {
       setImposters(data.imposters);
     });
     socketRef.current.on('gameReset', data => {
-      setStarted(false);
-      setEnded(false);
+      setGameData(data.game);
     });
     socketRef.current.on('gameClosed', data => {
       localStorage.removeItem("gameToken");
@@ -320,7 +371,7 @@ export default function Game() {
     });
 
     socketRef.current.on('disconnect', reason => {
-      console.log("socket disconnected: ", reason);
+      // console.log("socket disconnected: ", reason);
       switch (reason) {
         case "io server disconnect":
           localStorage.removeItem("gameToken");
@@ -335,7 +386,7 @@ export default function Game() {
           setLeaving(true);
           break;
         default:
-          console.log("socket disconnected for unknown reason:", reason);
+          Utils.isDev() && console.log("socket disconnected for unknown reason:", reason);
           break;
       }
     });
@@ -343,9 +394,9 @@ export default function Game() {
       // console.log("reconnect_failed");
       setJoinError(`Failed to contact server! | Please try to rejoin the game`);
     });
-    socketRef.current.prependAny((event, ...args) => {
-      console.log(`got ${event}`, args);
-    });
+    // socketRef.current.prependAny((event, ...args) => {
+    //   console.log(`got ${event}`, ...(Utils.isDev() ? args : []));
+    // });
     return () => {
       // console.log("unrender game!");
       socketRef.current && socketRef.current.disconnect();
@@ -363,7 +414,8 @@ export default function Game() {
     setTasksStatusDatum,
     setRole,
     setTasks,
-    setTasksDatum
+    setTasksDatum,
+    updateTasksDatum
   ], ['hostname', 'username', 'gameToken']);
 
   useEffect(() => {
@@ -413,7 +465,7 @@ export default function Game() {
   }, []);
 
   const startGame = useCallback(() => {
-    console.log('start game');
+    // console.log('start game');
     socketRef.current && socketRef.current.emit('startGame', {});
   }, []);
 
@@ -491,6 +543,15 @@ export default function Game() {
     socketRef.current && socketRef.current.emit('iGotReported', { username });
   }, [username]);
 
+  const stopMobileTask = useCallback(() => {
+    socketRef.current && socketRef.current.emit('stopMobileTask', { mobileTask: { taskname: mobileTask.taskname, qrID: mobileTask.qrID } });
+  }, [mobileTask]);
+
+  const finishMobileTask = useCallback(() => {
+    // TODO: ensure that this is called from the actual mobile task
+    socketRef.current && socketRef.current.emit('finishMobileTask', { mobileTask: { taskname: mobileTask.taskname, qrID: mobileTask.qrID } });
+  }, [mobileTask]);
+
   const inGameFunctions = useMemo(() => ({
 
   }), []);
@@ -504,8 +565,10 @@ export default function Game() {
 
   const crewmateFunctions = useMemo(() => ({
     ...livingPlayerFunctions,
-    iGotKilled
-  }), [livingPlayerFunctions, iGotKilled]);
+    iGotKilled,
+    stopMobileTask,
+    finishMobileTask
+  }), [livingPlayerFunctions, iGotKilled, stopMobileTask, finishMobileTask]);
 
   const imposterFunctions = useMemo(() => ({
     ...livingPlayerFunctions,
@@ -570,14 +633,14 @@ export default function Game() {
             ? <WaitingRoom { ...{ players, username, hostname, rules, tasksStatus } } toggleReadyState={() => updateReadyState(!myPlayer.ready)} updateRule={username === hostname && updateRule} startGame={username === hostname && startGame} />
             : (!ended
               ? (inMeeting
-                ? <MeetingRoom { ...{ players, username, hostname, myPlayer, meetingInfo, votingTimer, myVote, castedVotes, votes, ejectedPlayer } } functions={meetingFunctions} />
+                ? <MeetingRoom { ...{ players, username, hostname, myPlayer, totalTasks, completedTasks, meetingInfo, votingTimer, myVote, castedVotes, votes, ejectedPlayer } } functions={meetingFunctions} />
                 : <>
                   { myPlayer.role === "CREWMATE" && (
                     myPlayer.alive
-                      ? <CrewmateScreen { ...{ players, username, hostname, myPlayer } } functions={crewmateFunctions} />
-                    : <GhostScreen { ...{ players, username, hostname, myPlayer } } functions={ghostFunctions} />
+                      ? <CrewmateScreen { ...{ players, username, hostname, myPlayer, totalTasks, completedTasks, qrScanIssue, setQrScanIssue, mobileTask } } functions={crewmateFunctions} />
+                      : <GhostScreen { ...{ players, username, hostname, myPlayer, totalTasks, completedTasks } } functions={ghostFunctions} />
                   )}
-                  { myPlayer.role === "IMPOSTER" && <ImposterScreen { ...{ players, username, hostname, myPlayer } } functions={imposterFunctions}/> }
+                  { myPlayer.role === "IMPOSTER" && <ImposterScreen { ...{ players, username, hostname, myPlayer, totalTasks, completedTasks, qrScanIssue, setQrScanIssue } } functions={imposterFunctions}/> }
                 </>)
               : <EndScreen { ...{ winners, crewmates, imposters, username, hostname } } resetGame={username === hostname && resetGame} />)
           }

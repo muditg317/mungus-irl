@@ -73,6 +73,21 @@ module.exports = {
       // socket.leave("players");
     });
 
+    socket.on("fail", data => {
+      if (!game.readyForActions()) {
+        return;
+      }
+      const { username } = data;
+      game.failPhysicalTask(username, task);
+    });
+
+    socket.on("finish", data => {
+      if (!game.readyForActions()) {
+        return;
+      }
+      const { username } = data;
+      game.finishPhysicalTask(username, task);
+    });
 
   }
 };

@@ -33,16 +33,16 @@ module.exports = {
       const salt = await bcrypt.genSalt(10);
       const hash = await bcrypt.hash(newUser.password, salt);
       newUser.password = hash;
-      console.log('gen new user', newUser);
+      // console.log('gen new user', newUser);
 
       const savedUser = await newUser.save({wtimeout: MONGOOSE_WRITE_TIMEOUT});
-      console.log('registered', savedUser);
+      // console.log('registered', savedUser);
 
       const payload = authPayload(savedUser);
 
       jwt.sign(payload, SECRET_OR_KEY, { expiresIn: '1y' }, (err, token) => {
           if (err) throw err;
-          console.log('auth token', token);
+          // console.log('auth token', token);
           response.json({
             success: true,
             token: 'Bearer ' + token
@@ -76,13 +76,13 @@ module.exports = {
       if (!isMatch) {
         return response.status(400).json({ password: 'Password incorrect' });
       }
-      console.log('logged in', user);
+      // console.log('logged in', user);
 
       const payload = authPayload(user);
 
       jwt.sign(payload, SECRET_OR_KEY, { expiresIn: '1y' }, (err, token) => {
           if (err) throw err;
-          console.log('auth token', token);
+          // console.log('auth token', token);
           response.json({
             success: true,
             token: 'Bearer ' + token

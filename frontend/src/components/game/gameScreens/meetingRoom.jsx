@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 
 export default function MeetingRoom(props) {
-  const { players, username, myPlayer, meetingInfo, votingTimer, myVote, castedVotes, votes, ejectedPlayer, functions } = props;
+  const { players, username, myPlayer, totalTasks, completedTasks, meetingInfo, votingTimer, myVote, castedVotes, votes, ejectedPlayer, functions } = props;
   const { alive } = myPlayer;
   const { reason, victim, reporter, caller } = meetingInfo;
   const { castVote } = functions;
@@ -28,6 +28,8 @@ export default function MeetingRoom(props) {
     }
   }, [voteReady]);
 
+  //TODO: only vote for living people
+
   return (
     <>
       { !ejectedPlayer && <div className={`w-full p-2.5 flex flex-row`}>
@@ -35,6 +37,14 @@ export default function MeetingRoom(props) {
           {meetingTitle}
         </p>
       </div> }
+      <div className={`py-1 w-full`}>
+        <div className="flex flex-row items-center justify-between">
+          <p className="mr-1">Task progress:</p>
+          <div className="flex flex-row">
+            {`${completedTasks}/${totalTasks}`}
+          </div>
+        </div>
+      </div>
       { !ejectedPlayer && <div className={`w-full p-2.5 flex flex-col`}>
         <div className="flex flex-row justify-between">
           <p className="text-xl text-center font-bold text-white mb-2">

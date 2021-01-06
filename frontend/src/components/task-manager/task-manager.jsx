@@ -10,7 +10,6 @@ import { isEmpty, upperFirstChar } from 'utils';
 import { store } from 'state-management';
 import { pullTaskManagerDataAction, updateTaskManagerDataAction } from "state-management/actions/taskManagerActions";
 
-// import availableMobileTasks from 'components/mobile-tasks';
 
 import { UserTaskDescription, MobileTaskDescription } from './task-description';
 

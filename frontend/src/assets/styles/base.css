@@ -3,5 +3,5 @@ html>body,
 html>body>#root {
   height: -webkit-fill-available;
   min-height: max-content;
-  background-color: rgb(55, 65, 81);
+  /* background-color: rgb(55, 65, 81); */
 }

@@ -1,5 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import QRCode from 'qrcode';
+import React, {  } from 'react';
 
 import { upperFirstCharOnly } from 'utils';
 
@@ -39,8 +38,9 @@ export default function EndScreen(props) {
           })}
         </div>
       </div>
-      { username === hostname && <div className="w-full h-fill mt-1 pt-1 flex flex-row justify-center items-end">
-        <button className={`mt-auto w-1/2 h-14 rounded-full border-none bg-gray-300 text-3xl font-bold text-red-500`} onClick={() => resetGame()}>
+      <div className="w-full h-fill mt-auto"></div>
+      { username === hostname && <div className="w-full mt-1 pt-1 flex flex-row justify-center items-end">
+        <button className={`pb-3 pt-2.5 px-4  rounded-full border-none bg-gray-300 text-3xl font-bold text-red-500`} onClick={() => resetGame()}>
           Start Over!
         </button>
       </div> }

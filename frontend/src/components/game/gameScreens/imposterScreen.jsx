@@ -1,7 +1,10 @@
 import React, { useMemo, useState } from 'react';
+import useQrScanner from 'hooks/useQrScanner';
+
+import QrScanModal from './qrScanModal';
 
 export default function ImposterScreen(props) {
-  const { players, username, myPlayer, functions } = props;
+  const { players, username, myPlayer, totalTasks, completedTasks, qrScanIssue, setQrScanIssue, functions } = props;
   const { alive, tasks, pendingReport, imposters=[username], killTimer, pendingVictim, victims=[] } = myPlayer;
   const { sendQrScanResult, reportPlayer, unreadyReport, killPlayer, unreadyImposterKill } = functions;
   // TODO: ^^ add params for sending qrscan result to server (asking for task completion)
@@ -21,6 +24,13 @@ export default function ImposterScreen(props) {
   }, [players, username]);
 
 
+  const { videoRef,
+    canvasRef,
+    scanning,
+    toggleScanning,
+    mode,
+    toggleMode } = useQrScanner(sendQrScanResult);
+
   return (
     <>
       <div className={`w-full p-2.5 flex flex-row justify-between items-center`}>
@@ -31,7 +41,7 @@ export default function ImposterScreen(props) {
           {`${stealthMode ? "1've been ki11ed!" : "Enter stealth mode!"}`}
         </button>
       </div>
-      <div className={`${!stealthMode && "hidden"} py-1 w-full`}>
+      <div className={`${!stealthMode ? "hidden" : ""} py-1 w-full`}>
         <div className="flex flex-col">
           { myPlayer && <div className={`w-full flex flex-row items-center mb-1 last:mb-0 text-white`}>
             <div className="w-1/2">
@@ -47,26 +57,7 @@ export default function ImposterScreen(props) {
           </div> }
         </div>
       </div>
-      <div className={`${!stealthMode && "hidden"} py-1 w-full`}>
-        <div className="flex flex-col">
-          { tasks && Object.keys(tasks).map(taskname => {
-            const task = tasks[taskname];
-            return <div key={taskname} className={`w-full flex flex-row items-center mb-1 last:mb-0 text-white`}>
-              <div className="w-1/2">
-                <p className="text-right align-middle">
-                  {`${taskname} (${task.format}) -` /*TODO: split into crewmate vs imposter components*/}
-                </p>
-              </div>
-              <div className="w-1/2">
-                <div className="ml-1">
-                  <p>{`${Math.random() < 0.1 ? "Complete!" : "Not completed"}`}</p>
-                </div>
-              </div>
-            </div>
-          })}
-        </div>
-      </div>
-      <div className={`${stealthMode && "hidden"} py-1 w-full`}>
+      <div className={`${stealthMode ? "hidden" : ""} py-1 w-full`}>
         <div className="flex flex-col">
           { imposters && imposters.map(imposterName => {
             return <div key={imposterName} className={`w-full flex flex-row items-center mb-1 last:mb-0 text-red-700`}>
@@ -84,7 +75,34 @@ export default function ImposterScreen(props) {
           })}
         </div>
       </div>
-      <div className={`${stealthMode && "hidden"} py-1 w-full`} onClick={() => pendingVictim && unreadyImposterKill()}>
+      <div className={`py-1 w-full`}>
+        <div className="flex flex-row items-center justify-between">
+          <p className="mr-1">Task progress:</p>
+          <div className="flex flex-row">
+            {`${completedTasks}/${totalTasks}`}
+          </div>
+        </div>
+      </div>
+      <div className={`${!stealthMode ? "hidden" : ""} py-1 w-full`}>
+        <div className="flex flex-col">
+          { tasks && Object.keys(tasks).map(taskname => {
+            const task = tasks[taskname];
+            return <div key={taskname} className={`w-full flex flex-row items-center mb-1 last:mb-0 text-white`}>
+              <div className="w-1/2">
+                <p className="text-right align-middle">
+                  {`${taskname} (${task.format}) -`}
+                </p>
+              </div>
+              <div className="w-1/2">
+                <div className="ml-1">
+                  <p>{`${Math.random() < 0.1 ? "Complete!" : "Not completed"}`}</p>
+                </div>
+              </div>
+            </div>
+          })}
+        </div>
+      </div>
+      <div className={`${stealthMode ? "hidden" : ""} py-1 w-full`} onClick={() => pendingVictim && unreadyImposterKill()}>
         <p className="mb-1">{`${pendingVictim ? `Ready to kill ${pendingVictim}! (tap to unready)` : "Tap a player to kill them!"}`}</p>
         <div className={`w-full relative flex flex-row flex-wrap ${potentialVictims && potentialVictims.length > 2 ? "justify-between" : "justify-around"}`}>
           { potentialVictims && potentialVictims.map(crewmateName => {
@@ -115,7 +133,18 @@ export default function ImposterScreen(props) {
           </div>}
         </div>
       </div>
-      {/*TODO:add scan task qr code button (fake it for imposter)*/}
+      <div className="w-full h-fill mt-auto"></div>
+      { alive && qrScanIssue && <div className="p-2 flex flex-col items-center justify-center">
+        <p className={`p-2 text-lg text-center align-middle text-white`} onClick={() => setQrScanIssue(false)}>
+          {qrScanIssue}
+        </p>
+      </div> }
+      { alive && <div className="p-2 flex flex-col items-center justify-center">
+        <button className={`pb-3 pt-2.5 px-4 rounded-full border-none bg-gray-${!scanning ? '300' : '500'} text-3xl font-bold text-center align-middle ${!scanning ? 'text-red-500' : 'text-gray-700'}`} disabled={scanning} onClick={() => setQrScanIssue(false) || toggleScanning()}>
+          Scan a QR Code!
+        </button>
+      </div> }
+      { <QrScanModal { ...{ videoRef, canvasRef, mode, toggleMode } } shown={alive && scanning} onExit={() => toggleScanning()} /> }
     </>
     );
 }

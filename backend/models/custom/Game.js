@@ -28,7 +28,7 @@ const enumRule = (options, value) => {
 const DEFAULT_RULES = {
   '# imposters': numericRule(1,3,2),
   'Confirm Ejects': toggleRule(false),
-  '# Emergency Meetings': numericRule(1,3,1),
+  '# Emergency Meetings': numericRule(0,3,1),
   'Emergency Cooldown': numericRule(0,60,20,5),
   'Anonymous Votes': toggleRule(false),
   'Voting Time': numericRule(15,150,120,15),
@@ -59,7 +59,7 @@ const DEFAULT_IMCOMPLETE_TASK = {
 };
 
 const POST_VOTING_DELAY = 5000;
-const EJECTION_TIME = 7500;
+const EJECTION_TIME = 5000;
 
 module.exports = class Game {
   static RESPONSELESS_PING_THRESHOLD = NODE_ENV === 'development' ? 2 : 2;
@@ -75,7 +75,7 @@ module.exports = class Game {
     tasks.forEach(task => {
       task.online = !task.physicalDeviceID;
       task.socket = null;
-      task.inUse = false;
+      task.physicalDeviceID && (task.inUse = false);
       this.tasks[task.qrID] = task;
       // this.tasks[task.format][task.qrID] = task;
     });
@@ -133,7 +133,7 @@ module.exports = class Game {
   }
 
   getPlayerData(pubPriv) {
-    return Object.fromEntries(Object.entries(this.players).map(entry => [entry[0], entry[1][`get${pubPriv}Data`]()]))
+    return Object.fromEntries(Object.entries(this.players).map(entry => [entry[0], entry[1][`get${pubPriv}Data`]()]));
   }
 
   getPhysicalTasks() {
@@ -150,15 +150,17 @@ module.exports = class Game {
   }
 
   getTasksStatus() {
-    return Object.fromEntries(Object.entries(this.getPhysicalTasks()).map(entry => [entry[0], {online: entry[1].online}]))
+    return Object.fromEntries(Object.entries(this.getPhysicalTasks()).map(entry => [entry[0], {online: entry[1].online}]));
   }
 
   getPublicTaskInfo(playerTasks) {
-    return Object.fromEntries(Object.entries(playerTasks).map(([key,value]) => ([this.tasks[key].taskname, {
+    return Object.fromEntries(Object.entries(playerTasks).map(([key,value]) => [
+      this.tasks[key].taskname,
+      {
         ...value,
         ...fieldsFromObject(this.tasks[key], ['taskname','format'])
-      }])
-    ));
+      }
+    ]));
   }
 
   getPublicData(fillPlayers = true) {
@@ -176,6 +178,8 @@ module.exports = class Game {
     publicData.ended = this.ended;
     publicData.inMeeting = this.inMeeting;
     publicData.meetingInfo = this.meetingInfo;
+    publicData.totalTasks = this.totalTasks;
+    publicData.completedTasks = this.completedTasks;
     if (this.inMeeting) {
       if (this.votingTimer <= 0) {
         publicData.votes = this.votes;
@@ -256,7 +260,7 @@ module.exports = class Game {
     }
     const newPlayer = new Player({
       username, socketAddress: socketRemoteIP(socket)
-    })
+    });
     this.numActivePlayers() && this.sendPlayerUpdate(newPlayer, "playerJoin");
     this.players[username] = newPlayer;
     this.updateImposterLimit();
@@ -318,9 +322,19 @@ module.exports = class Game {
     delete player.socket;
     delete player.socketID;
     player.active = false;
+    Object.keys(player.tasks).forEach(qrID => {
+      const taskState = player.tasks[qrID];
+      const task = this.tasks[qrID];
+      if (taskState.active) {
+        taskState.active = false;
+        if (task.physicalDeviceID) {
+          task.inUse = false;
+        }
+      }
+    });
     this.setReadyState(player, false);
     if (!this.numActivePlayers()) {
-      console.log(`CLOSE GAME: ${this.getIndexVariable()}| -- all players gone`);
+      // console.log(`CLOSE GAME: ${this.getIndexVariable()}| -- all players gone`);
       this.close();
     }
     this.sendPlayerUpdate(player);
@@ -329,7 +343,7 @@ module.exports = class Game {
 
   removePlayer(username) {
     const player = this.getPlayer(username);
-    console.log("removing player", player);
+    // console.log("removing player", player);
     if (!player) {
       return false;
     }
@@ -346,7 +360,7 @@ module.exports = class Game {
 
   sendPlayerUpdate(player, eventName = "playerInfo") {
     this.gameRoomIO && this.gameRoomIO.to("players").emit(eventName, { player: player.getGamePrivateData() });
-    player.socket && player.socket.emit("playerInfo", { player: player.getUserPrivateData() })
+    player.socket && player.socket.emit("playerInfo", { player: player.getUserPrivateData() });
   }
 
   numActivePlayers() {
@@ -432,6 +446,16 @@ module.exports = class Game {
     this.tasks[task.qrID].online = false;
     this.tasks[task.qrID].socket = null;
     this.gameRoomIO && this.gameRoomIO.to("players").emit("taskStatus", {taskname: task.taskname, taskStatus: {online: false}});
+    if (task.inUse) {
+      const usingPlayers = Object.values(this.players).filter(player => player.tasks[task.qrID].active);
+      if (usingPlayers.length !== 1) {
+        throw new Error(`Task in use with bad number of active players... ${usingPlayers.map(player => player.username)}`);
+      }
+      const player = usingPlayers[0];
+      task.inUse = false;
+      player.tasks[task.qrID].active = false;
+      player.socket && player.socket.emit("stopTask", { taskname: task.taskname });
+    }
   }
 
   resetGame() {
@@ -445,12 +469,17 @@ module.exports = class Game {
     this.ghosts = {};
     Object.values(this.players).forEach(player => {
       player.reset();
-      this.sendPlayerUpdate(player);
+      // this.sendPlayerUpdate(player);
     });
-    clearInterval(this._votingTimerInterval);
+    this.clearVotingTimer();
+    this.clearEmergencyTimer();
     this.votes = {};
     this.ejectedPlayer = null;
-    this.gameRoomIO && this.gameRoomIO.to("players").emit("gameReset");
+    this.totalTasks = undefined;
+    this.completedTasks = undefined;
+    Object.values(this.players).forEach(player => {
+      player.socket && player.socket.emit("gameReset", { game: player.username === this.hostname ? this.getHostData() : this.getUserPrivateData(player.username) });
+    });
   }
 
   readyToStart() {
@@ -480,7 +509,9 @@ module.exports = class Game {
 
     players.forEach(player => {
       player.socket && player.socket.join("alive");
+      player.remainingEmergencies = this.rules["# Emergency Meetings"].value;
     });
+    this.emergencyTimer = this.rules["Emergency Cooldown"].value;
 
     imposters.forEach(imposter => {
       imposter.socket && imposter.socket.join("imposters");
@@ -500,6 +531,7 @@ module.exports = class Game {
     imposters.forEach(player => {
       player.socket && player.socket.emit("allAssignedTasksInfo", { tasks: this.getPublicTaskInfo(player.tasks) });
     });
+    this.emitTaskBarStatus();
   }
 
   distributeTasks() {
@@ -588,6 +620,8 @@ module.exports = class Game {
       imposters.forEach(imposter => {
         imposter.clearKillTimer();
       });
+      this.clearVotingTimer();
+      this.clearEmergencyTimer();
       this.gameRoomIO && this.gameRoomIO.emit("gameEnded", {
         winners: this.winners,
         crewmates: Object.keys(this.crewmates),
@@ -640,15 +674,16 @@ module.exports = class Game {
     }
     crewmate.alive = false;
     Object.entries(crewmate.tasks).forEach(taskEntry => {
-      const [ qrID, task ] = taskEntry;
+      const [ qrID, taskStatus ] = taskEntry;
       const gameTask = this.tasks[qrID];
-      if (task.active) {
+      if (taskStatus.active) {
         if (gameTask.physicalDeviceID) {
-          task.socket && task.socket.emit("evictPlayer", { username });
+          taskStatus.socket && taskStatus.socket.emit("evictPlayer", { username });
         }
+        player.socket && player.socket.emit("stopTask", { taskname: gameTask.taskname });
       }
-      task.completed = true;
-      task.active = false;
+      taskStatus.completed = true;
+      taskStatus.active = false;
     });
     if (crewmate.socket) {
       crewmate.socket.leave("alive");
@@ -746,10 +781,9 @@ module.exports = class Game {
   }
 
   attemptReport(reporterName, bodyName) {
-    // console.log('attemptReport');
     const reporter = this.players[reporterName];
-    const crewmate = this.crewmates[bodyName];
-    if (!reporter || !crewmate || !reporter.alive) {
+    const body = this.players[bodyName];
+    if (!reporter || !body || !reporter.alive) {
       return false;
     }
     reporter.pendingReport = bodyName;
@@ -787,6 +821,29 @@ module.exports = class Game {
     return true;
   }
 
+  get emergencyTimer() {
+    return this._emergencyTimer;
+  }
+
+  set emergencyTimer(newEmergencyTimer) {
+    clearInterval(this._emergencyTimerInterval);
+    this._emergencyTimer = newEmergencyTimer;
+    // this.socket && this.socket.emit("emergencyTimer", {emergencyTimer: this._emergencyTimer});
+    const step = 1000;
+    const decr = step/1000;
+    this._emergencyTimerInterval = setInterval(() => {
+      this._emergencyTimer -= decr;
+      // this._emergencyTimer % 1 === 0 && this.socket && this.socket.emit("emergencyTimer", {emergencyTimer: this._emergencyTimer});
+      if (this._emergencyTimer <= 0) {
+        // this.readyToKill();
+      }
+    }, step);
+  }
+
+  clearEmergencyTimer() {
+    clearInterval(this._emergencyTimerInterval);
+  }
+
   setupMeeting(meetingInfo) {
     const reason = meetingInfo.reason;
     switch (reason) {
@@ -800,7 +857,28 @@ module.exports = class Game {
         break;
     }
     // TODO: send task bar update if rule is meetings
-    this.gameRoomIO && this.gameRoomIO.to("players").emit("meeting", { meetingInfo, votingTimer: this.rules["Voting Time"].value });
+    if (this.rules["Task Bar Updates"].value === "MEETINGS") {
+      this.emitTaskBarStatus();
+    }
+    const newBodies = [];
+    Object.values(this.players).forEach(player => {
+      Object.keys(player.tasks).forEach(qrID => {
+        const taskState = player.tasks[qrID];
+        if (taskState.active) {
+          taskState.active = false;
+          const task = this.tasks[qrID];
+          if (task.physicalDeviceID) {
+            task.inUse = false;
+            task.socket && task.socket.emit("cancelTask");
+          }
+          player.socket && player.socket.emit("stopTask", { taskname: task.taskname });
+        }
+      });
+      if (!player.alive && player.publiclyAlive) {
+        player.publiclyAlive = true;
+        newBodies.push(player.username);
+      }
+    });
     this.inMeeting = true;
     this.meetingInfo = meetingInfo;
     this.votingTimer = this.rules["Voting Time"].value;
@@ -809,6 +887,7 @@ module.exports = class Game {
       []
     ]));
     this.votes['**SKIP_VOTE**'] = [];
+    this.gameRoomIO && this.gameRoomIO.to("players").emit("meeting", { meetingInfo, votingTimer: this.rules["Voting Time"].value, newBodies });
     // this.votes["**ABSTAIN**"] = Object.keys(this.players).filter(playerName => this.players[playerName].alive);
     return true;
   }
@@ -831,6 +910,10 @@ module.exports = class Game {
         this.tallyVotes();
       }
     }, step);
+  }
+
+  clearVotingTimer() {
+    clearInterval(this._votingTimerInterval);
   }
 
   /**
@@ -883,14 +966,214 @@ module.exports = class Game {
         this.inMeeting = false;
         this.ejectedPlayer = null;
         if (!this.ended) {
-          this.gameRoomIO && this.gameRoomIO.to("players").emit("resume", {wasEjected: ejectedPlayer});
+          this.gameRoomIO && this.gameRoomIO.to("players").emit("resume", { wasEjected: ejectedPlayerData });
           Object.values(this.imposters).filter(imposter => imposter.alive).forEach(imposter => {
             imposter.killTimer = this.rules["Kill Cooldown"].value;
           });
+          this.emergencyTimer = this.rules["Emergency Cooldown"].value;
         }
       }, EJECTION_TIME);
     }, POST_VOTING_DELAY);
   }
+
+  acknowledgeQrScan(scannerName, qrData) {
+    const player = this.getPlayer(scannerName);
+    if (!player) {
+      return false;
+    }
+    if (qrData === "3m3RgEnCy") {
+      const issue = player.cannotCallMeeting(this.emergencyTimer);
+      if (issue) {
+        player.socket && player.socket.emit("badQrScan", { issue });
+        return false;
+      }
+      const ret = this.setupMeeting({ reason: "EMERGENCY", caller: scannerName });
+      player.remainingEmergencies--;
+      return ret;
+    } else if (qrData in this.tasks) {
+      const task = this.tasks[qrData];
+      const taskState = player.tasks[qrData];
+      if (!player.alive) {
+        player.socket && player.socket.emit("badQrScan", { issue: "Dead people can't do tasks!" });
+        return false;
+      }
+      if (scannerName in this.crewmates) {
+        // console.log('attempting task', qrData, player.username);
+        if (!(qrData in player.tasks)) {
+          player.socket && player.socket.emit("badQrScan", { issue: `You were not assigned the ${task.taskname} task!` });
+          return false;
+        }
+        if (taskState.completed) {
+          player.socket && player.socket.emit("badQrScan", { issue: `You've already completed the ${task.taskname} task! Move on!` });
+          return false;
+        }
+        const alreadyActiveTasks = Object.keys(player.tasks).filter(qrID => player.tasks[qrID].active);
+        if (alreadyActiveTasks.length) {
+          player.socket && player.socket.emit("badQrScan", { issue: `You're already doing the ${alreadyActiveTasks.map(qrID => this.tasks[qrID].taskname)} task${alreadyActiveTasks.length > 1 ? "s" : ""}! Finish that first!` });
+          return false;
+        }
+        if (task.physicalDeviceID) {
+          if (!task.online) {
+            player.socket && player.socket.emit("badQrScan", { issue: `The ${task.taskname} task is offline! You gotta fix it bruh` });
+            return false;
+          }
+          if (task.inUse) {
+            player.socket && player.socket.emit("badQrScan", { issue: `The ${task.taskname} task is already being done! You gotta wait...` });
+            return false;
+          }
+          const ret = this.startTask(player, task);
+          return ret;
+        } else {
+          // player.socket && player.socket.emit("badQrScan", { issue: `Nice mobile task! ${task.taskname}` });
+          // TODO: add logic for requiring rescan on completion of mobile task
+          if (taskState.awaitingRescan) {
+            this.completeTask(player, task);
+            return true;
+          }
+          if (taskState.active) {
+            return false;
+          }
+          const ret = this.startTask(player, task);
+          return ret;
+        }
+      } else {
+        player.socket && player.socket.emit("badQrScan", { issue: "Nice task faking you IMPOSTER" });
+        return false;
+      }
+    } else if (qrData in this.players) {
+      // console.log('scan player', qrData, player.username);
+      const ret = true;
+      return ret;
+    } else {
+      console.log("Unknown QR code", qrData);
+      player.socket && player.socket.emit("badQrScan", { issue: "Unknown QR code. Try scanning again." });
+      return false;
+    }
+  }
+
+  startTask(player, task) {
+    if (!player || !(player.username in this.players)) {
+      return false;
+    }
+    if (!task || !(task.qrID in this.tasks) || !(task.qrID in player.tasks)) {
+      return false;
+    }
+    const activePlayerTasks = Object.values(player.tasks).filter(taskState => taskState.active);
+    if (activePlayerTasks.length) {
+      return false;
+    }
+    const taskState = player.tasks[task.qrID];
+    if (task.physicalDeviceID) {
+      task.inUse = true;
+      task.socket && task.socket.emit("begin", { username: player.username });
+    } else {
+    }
+    taskState.active = true;
+    player.socket && player.socket.emit("beginTask", { taskname: task.taskname });
+    return true;
+  }
+
+  stopMobileTask(username, mobileTask) {
+    const player = this.players[username];
+    const task = this.tasks[mobileTask.qrID];
+    if (!player || !player.alive || !task || task.physicalDeviceID) {
+      return false;
+    }
+    const taskState = player.tasks[task.qrID];
+    if (!taskState.active) {
+      return false;
+    }
+    taskState.active = false;
+    // taskState.awaitingRescan = true;
+    player.socket && player.socket.emit("stopTask", { taskname: task.taskname });
+    return true;
+  }
+
+  finishMobileTask(username, mobileTask) {
+    const player = this.players[username];
+    const task = this.tasks[mobileTask.qrID];
+    if (!player || !player.alive || !task || task.physicalDeviceID) {
+      return false;
+    }
+    const taskState = player.tasks[task.qrID];
+    if (!taskState.active) {
+      return false;
+    }
+    taskState.active = false;
+    taskState.awaitingRescan = true;
+    player.socket && player.socket.emit("awaitingRescan", { taskname: task.taskname });
+    return true;
+  }
+
+  failPhysicalTask(username, task) {
+    const player = this.players[username];
+    // const task = this.tasks[mobileTask.qrID];
+    if (!player || !player.alive || !task || !task.physicalDeviceID || !task.inUse || !(task.qrID in player.tasks)) {
+      return false;
+    }
+    const taskState = player.tasks[task.qrID];
+    if (!taskState.active) {
+      return false;
+    }
+    task.inUse = false;
+    taskState.active = false;
+    player.socket && player.socket.emit("stopTask", { taskname: task.taskname });
+    return true;
+  }
+
+  finishPhysicalTask(username, task) {
+    const player = this.players[username];
+    // const task = this.tasks[mobileTask.qrID];
+    if (!player || !player.alive || !task || !task.physicalDeviceID || !task.inUse || !(task.qrID in player.tasks)) {
+      return false;
+    }
+    const taskState = player.tasks[task.qrID];
+    if (!taskState.active) {
+      return false;
+    }
+    this.completeTask(player, task);
+    return true;
+  }
+
+  completeTask(player, task) {
+    if (!player || !(player.username in this.players)) {
+      return false;
+    }
+    if (!task || !(task.qrID in this.tasks) || !(task.qrID in player.tasks)) {
+      return false;
+    }
+    const taskState = player.tasks[task.qrID];
+    taskState.completed = true;
+    taskState.active = false;
+    if (!task.physicalDeviceID) {
+      delete taskState.awaitingRescan;
+    } else {
+      task.inUse = false;
+    }
+    player.socket && player.socket.emit("taskComplete", { taskname: task.taskname });
+    if (this.rules["Task Bar Updates"].value === "ALWAYS") {
+      this.emitTaskBarStatus();
+    }
+  }
+
+  emitTaskBarStatus() {
+    let totalTasks = 0;
+    let completedTasks = 0;
+    Object.keys(this.players)
+        .filter(playerName => playerName in this.crewmates)
+        .forEach(playerName => {
+          const player = this.players[playerName];
+          Object.values(player.tasks).forEach(task => {
+            totalTasks++;
+            task.completed && (completedTasks++);
+          });
+      });
+    this.totalTasks = totalTasks;
+    this.completedTasks = completedTasks;
+    this.gameRoomIO && this.gameRoomIO.to("players").emit("taskBarStatus", { totalTasks, completedTasks });
+  }
+
+  // TODO: player disconnect -> make all associated tasks inactive
 
   // TODO: method for receiving a qrscan
   //        physical task: validate -> tell task it's being worked on
