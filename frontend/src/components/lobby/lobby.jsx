@@ -10,13 +10,21 @@ import JoinModal from './joinModal';
 
 import banner from 'assets/images/mungus-banner.jpg';
 
+const newFallbackUsername = () => {
+  return `Player${Math.floor(Math.random()*1000)}`;
+};
+
+const fallbacks = (...options) => {
+  return options.find(option => option !== undefined && option !== null);
+};
+
 export default function Lobby({ openAuthModal }) {
   // console.log("render lobby");
   const { state } = useContext(store);
   // const addAvailableGame = useCallback((...args) => addAvailableGameAction(dispatch)(...args), [dispatch]);
   // const removeAvailableGame = useCallback((...args) => removeAvailableGameAction(dispatch)(...args), [dispatch]);
   // const setAvailableGames = useCallback((...args) => setAvailableGamesAction(dispatch)(...args), [dispatch]);
-  const [ username, setUsername ] = useState(() => (state.auth.user.username || localStorage.getItem('username') || `Player ${Math.floor(Math.random()*1000)}`));
+  const [ username, setUsername ] = useState(() => fallbacks(state.auth.user.username, localStorage.getItem('username'), newFallbackUsername()));
   const usernameRef = useRef(null);
   // const [ games, setGames ] = useState([]);
   const [ socket, setSocket ] = useState();
@@ -62,8 +70,8 @@ export default function Lobby({ openAuthModal }) {
   // }, [state.lobby.games]);
 
   useEffect(() => {
-    if (state.auth.user.username || !username) {
-      setUsername(state.auth.user.username || localStorage.getItem('username') || `Player ${Math.floor(Math.random()*1000)}`);
+    if (state.auth.user.username) {
+      setUsername(fallbacks(state.auth.user.username, username, localStorage.getItem('username'), newFallbackUsername()));
     }
   }, [state.auth.user.username, username]);
 
@@ -174,7 +182,7 @@ export default function Lobby({ openAuthModal }) {
       return;
     }
     if (providedUsername) {
-      setUsername(state.auth.user.username || providedUsername);
+      setUsername(fallbacks(state.auth.user.username, providedUsername));
     }
     if (hostname) {
       // console.log("JOIN FAILED:",hostname,"|",joinError,"|");
@@ -232,8 +240,8 @@ export default function Lobby({ openAuthModal }) {
           <div className="flex flex-row flex-wrap items-center justify-center mb-2">
             <h2 className="text-xl font-bold self-start mr-2 mb-1">Username:</h2>
             { state.auth.isAuthenticated
-              ? <p className="mb-1 font-bold text-xl bg-transparent w-fit">{state.auth.user.username || username}</p>
-              : <input ref={usernameRef} readOnly={state.auth.isAuthenticated} onChange={handleChange(setUsername, 10)} value={state.auth.user.username || username} className={`mb-1 p-1 rounded-md bg-gray-900 text-purple-500`} id="username" type="username" placeholder="Username" />
+              ? <p className="mb-1 font-bold text-xl bg-transparent w-fit">{fallbacks(state.auth.user.username, username)}</p>
+              : <input ref={usernameRef} readOnly={state.auth.isAuthenticated} onChange={handleChange(setUsername, 10)} value={fallbacks(state.auth.user.username, username)} className={`mb-1 p-1 rounded-md bg-gray-900 text-purple-500`} id="username" type="username" placeholder="Username" />
             }
           </div>
           <div className="flex flex-row flex-wrap items-center justify-around sm:h-12">
@@ -266,7 +274,7 @@ export default function Lobby({ openAuthModal }) {
           </div>
         </div>
       </div>
-      { showJoinModal && <JoinModal {...{shown: showJoinModal, username: state.auth.isAuthenticated ? state.auth.user.username : (username || localStorage.getItem('username')), setUsername: state.auth.isAuthenticated ? () => null : setUsername, attemptJoin, onExit: closeJoinModal}} /> }
+      { showJoinModal && <JoinModal {...{shown: showJoinModal, username: state.auth.isAuthenticated ? state.auth.user.username : fallbacks(username, localStorage.getItem('username')), setUsername: state.auth.isAuthenticated ? () => null : setUsername, attemptJoin, onExit: closeJoinModal}} /> }
     </div>
     );
 }

@@ -8,7 +8,6 @@ export default function CrewmateScreen(props) {
   const { players, username, myPlayer, totalTasks, completedTasks, qrScanIssue, setQrScanIssue, mobileTask, functions } = props;
   const { alive, tasks, pendingReport } = myPlayer;
   const { sendQrScanResult, reportPlayer, unreadyReport, iGotKilled, stopMobileTask, finishMobileTask } = functions;
-  // TODO: ^^ add params for sending qrscan result to server (asking for task completion)
 
   const readyToReport = useMemo(() => !pendingReport, [pendingReport]);
   const potentialDeadBodies = useMemo(() => {

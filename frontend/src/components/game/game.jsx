@@ -203,7 +203,6 @@ export default function Game() {
 
     // console.log("create socket", hostname, username, gameToken);
     // console.log(`/game/${hostname}`, { forceNew: true, query: { gameToken, username, clientType: "PLAYER" } });
-    // TODO: use client type -- socketRef.current = socketIOClient(`/game/${hostname}`, { forceNew: true, query: { gameToken, username, clientType: "PLAYER" } }).connect();
     if (!socketRef.current)
       socketRef.current = socketIOClient(`/game/${hostname}`, {
         forceNew: true,
@@ -332,7 +331,7 @@ export default function Game() {
       updateTasksDatum(data.taskname, {completed: false, active: true, awaitingRescan: undefined});
       if (data.taskname in availableMobileTasks) {
         setMobileTask(availableMobileTasks[data.taskname]);
-        // TODO: figure out logic for clearing this state in meetings etc
+        // MAYBE: figure out logic for clearing this state in meetings etc
       }
     });
     socketRef.current.on('stopTask', data => {
@@ -608,8 +607,8 @@ export default function Game() {
       }}/>
   }
 
-  return (<div className="h-full flex flex-col items-center">
-    <div className="w-full h-fill flex-grow bg-gray-800 text-white">
+  return (<div className="h-full max-h-fit-borders overflow-y-scroll flex flex-col items-center">
+    <div className="w-full flex-grow bg-gray-800 text-white">
       <div className="container h-full mx-auto p-5">
         <div className="h-full flex flex-col divide-y divide-white">
           <div className="flex flex-row items-center justify-center -mb-0.5">

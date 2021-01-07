@@ -67,10 +67,8 @@ module.exports = class Game {
   constructor({ hostname, tasks = [], sockets = [], started = false, ended = false, players = {}, passcode, gameToken } = {}) {
     this.rules = { ...DEFAULT_RULES };
     this.hostname = hostname;
-    // this.roomID = randStr(5, 'a0');
-    // TODO: add gameIO
     // this.gameRoomIO = globals.rootIO.of(`/game/${hostname}`);
-    // TODO: NO! BAD! NEVER MAKE NAMESPACE WITH of() !!!!!!!
+    // NOTE: NO! BAD! NEVER MAKE NAMESPACE WITH of() !!!!!!!
     this.tasks = {};
     tasks.forEach(task => {
       task.online = !task.physicalDeviceID;
@@ -240,7 +238,6 @@ module.exports = class Game {
     Object.values(this.tasks).forEach(task => {
       task.socket && task.socket.disconnect();
     });
-    // TODO: more deletion logic for task sockets?
     delete globals.games[this.getIndexVariable()];
     globals.rootIO.of("/lobby").emit("removeGame", { game:this.getPublicData() });
     return true;
@@ -347,7 +344,6 @@ module.exports = class Game {
     if (!player) {
       return false;
     }
-    // TODO: add more remove logic (unassigning tasks and stuff, close socket)
     this.started && !this.ended && this.killPlayer(username);
     delete this.players[username];
     delete this.crewmates[username];
@@ -856,7 +852,6 @@ module.exports = class Game {
       default:
         break;
     }
-    // TODO: send task bar update if rule is meetings
     if (this.rules["Task Bar Updates"].value === "MEETINGS") {
       this.emitTaskBarStatus();
     }
@@ -928,7 +923,6 @@ module.exports = class Game {
     if (!voter || !voter.alive || voter.votingChoice || (choiceName !== "**SKIP_VOTE**" && (!choice || !choice.alive))) {
       return false;
     }
-    //TODO: dont allow double voting/acknowledge vote, finish early
     this.votes[choiceName].push(this.rules["Anonymous Votes"].value ? this.votes[choiceName].length + 1 : voterName);
     // this.votes["**ABSTAIN**"] = this.votes["**ABSTAIN**"].filter(abstainerName => abstainerName !== voterName);
     voter.votingChoice = choiceName;
@@ -998,7 +992,6 @@ module.exports = class Game {
         return false;
       }
       if (scannerName in this.crewmates) {
-        // console.log('attempting task', qrData, player.username);
         if (!(qrData in player.tasks)) {
           player.socket && player.socket.emit("badQrScan", { issue: `You were not assigned the ${task.taskname} task!` });
           return false;
@@ -1024,8 +1017,6 @@ module.exports = class Game {
           const ret = this.startTask(player, task);
           return ret;
         } else {
-          // player.socket && player.socket.emit("badQrScan", { issue: `Nice mobile task! ${task.taskname}` });
-          // TODO: add logic for requiring rescan on completion of mobile task
           if (taskState.awaitingRescan) {
             this.completeTask(player, task);
             return true;
@@ -1172,13 +1163,5 @@ module.exports = class Game {
     this.completedTasks = completedTasks;
     this.gameRoomIO && this.gameRoomIO.to("players").emit("taskBarStatus", { totalTasks, completedTasks });
   }
-
-  // TODO: player disconnect -> make all associated tasks inactive
-
-  // TODO: method for receiving a qrscan
-  //        physical task: validate -> tell task it's being worked on
-  //        mobile task: validate -> tell user to pull up task ui
-  //          must scan again once completed (prove they didn't just leave)
-  // TODO: update task bar completion and emit updates (dependent on rule)
 
 }

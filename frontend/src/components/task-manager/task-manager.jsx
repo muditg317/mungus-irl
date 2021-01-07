@@ -10,8 +10,10 @@ import { isEmpty, upperFirstChar } from 'utils';
 import { store } from 'state-management';
 import { pullTaskManagerDataAction, updateTaskManagerDataAction } from "state-management/actions/taskManagerActions";
 
+import availableMobileTasks from 'components/mobile-tasks';
 
 import { UserTaskDescription, MobileTaskDescription } from './task-description';
+import PreviewModal from './previewModal';
 
 const areDifferent = (task1, task2) =>
   // console.log(task1, task2) ||
@@ -60,12 +62,14 @@ const TaskManager = () => {
   const [ mobileTaskIDs, setMobileTaskIDs ] = useState(state.taskManager.mobileTasks || []);
   const history = useHistory();
 
+  const [ preview, setPreview ] = useState();
+
   const anyUnsaved = useMemo(() =>
     // console.log(userTaskData, state.taskManager.userTasks) ||
     userTaskData.length !== state.taskManager.userTasks.length
     || mobileTaskIDs.length !== state.taskManager.mobileTasks.length
     // || userTaskData.some(task => !state.taskManager.userTasks.find(t => t.id === task.id))
-    || userTaskData.some(task => !task.saved && areDifferent(task, state.taskManager.userTasks.find(t => t.id === task.id)))
+    || userTaskData.some(task => (!task.saved && areDifferent(task, state.taskManager.userTasks.find(t => t.id === task.id))) || ((task.saved = true) && false))
     || state.taskManager.userTasks.some(task => !userTaskData.find(t => t.id === task.id))
     || mobileTaskIDs.some(id => !state.taskManager.mobileTasks.includes(id))
     || state.taskManager.mobileTasks.some(id => !mobileTaskIDs.includes(id))
@@ -200,11 +204,12 @@ const TaskManager = () => {
           <h3 className="w-full bg-gray-700 text-center mb-3 text-lg">Mobile Tasks</h3>
           <div className="w-full bg-gray-700 flex flex-col items-center divide-y divide-white">
             {state.taskManager.mobileTaskInfo.map((taskDatum, index) => {
-              return <MobileTaskDescription key={taskDatum.id} task={taskDatum} selected={mobileTaskIDs.includes(taskDatum.id)} selectTask={() => setMobileTaskIDs(mobileTaskIDs.concat([taskDatum.id]))} unselectTask={() => setMobileTaskIDs(mobileTaskIDs.filter(taskID => taskID !== taskDatum.id))} />
+              return <MobileTaskDescription key={taskDatum.id} task={taskDatum} selected={mobileTaskIDs.includes(taskDatum.id)} selectTask={() => setMobileTaskIDs(mobileTaskIDs.concat([taskDatum.id]))} unselectTask={() => setMobileTaskIDs(mobileTaskIDs.filter(taskID => taskID !== taskDatum.id))} previewTask={() => setPreview(availableMobileTasks[taskDatum.taskname])} />
             })}
           </div>
         </div>
       </div>
+      <PreviewModal mobileTask={preview} finish={() => setPreview()} shown={!!preview} onExit={() => setPreview()} selected={preview && mobileTaskIDs.includes(preview.id)} selectTask={preview && (() => setMobileTaskIDs(mobileTaskIDs.concat([preview.id])))} unselectTask={preview && (() => setMobileTaskIDs(mobileTaskIDs.filter(taskID => taskID !== preview.id)))} />
     </div>
   );
 };

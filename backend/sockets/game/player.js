@@ -239,12 +239,9 @@ module.exports = {
         game.started && game.ended && game.resetGame();
       });
     }
-    // console.log(socket.isHost ? "SOCKET HOST" : "not host socket");
 
 
-    // console.log({ player: player.getGamePrivateData() });
-    // TODO: \/ replace belowwith playerConnect or something??
-    // gameRoomIO.to("players").emit("playerJoin", { player: player.getGamePrivateData() });
+    // MAYBE: \/ replace below with playerConnect or something??
     socket.emit("gameData", { game: socket.isHost ? game.getHostData() : game.getUserPrivateData(username) });
   }
 };

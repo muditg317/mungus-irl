@@ -33,7 +33,7 @@ module.exports = {
   },
   randStr: (length, valid='aA0', { noQuotes = false } = {}) => {
     let result             = '';
-    const characters       = (/[A-Z]/g.test(valid) ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' : '')
+    let characters       = (/[A-Z]/g.test(valid) ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' : '')
         + (/[a-z]/g.test(valid) ? 'abcdefghijklmnopqrstuvwxyz' : '')
         + (/[0-9]/g.test(valid) ? '0123456789' : '')
         + (/[$-/:-?{-~!"^_`\[\]]/g.test(valid) ? '!$%^&*()_+|~-=`{}[]:";\'<>?,./' : '');

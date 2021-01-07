@@ -167,7 +167,6 @@ module.exports = {
       }, []);
 
 
-      // TODO: ADD QR ID AND DEVICE ID TO TASK DATA
       tasksToCreate.forEach(task => {
         task.qrID = task.qrID || randStr(7);
         task.physicalDeviceID = task.physicalDeviceID || randStr(30, 'aA0$', {noQuotes: true});
@@ -177,7 +176,6 @@ module.exports = {
       const savedTasks = await Promise.all([...updatedTasks, ...newTasks].map(async (newTask) => await newTask.save({wtimeout: MONGOOSE_WRITE_TIMEOUT})));
       // console.log('saved tasks', savedTasks);
 
-      // TODO: be more efficient than deleting everything lmao
       const deleted = await Task.deleteMany({
         "_id": { $in: tasksToDelete.map(task => task._id) },
         "protected": false

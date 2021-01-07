@@ -39,7 +39,7 @@
     "build:css": "postcss src/assets/styles/tailwind.css -o src/assets/styles/index.css",
     "watch:css": "nodemon --watch src/assets/styles --watch tailwind.config.js --ignore src/assets/styles/index.css --ext scss,css --exec \"postcss src/assets/styles/tailwind.css -o src/assets/styles/index.css\""
   },
-  "proxy": "http://localhost:8080",
+  "proxy": "http://localhost:8080/",
   "eslintConfig": {
     "extends": [
       "react-app",

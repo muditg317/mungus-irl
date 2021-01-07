@@ -28,8 +28,6 @@ module.exports = {
       delete taskData._id;
       delete taskData.__v;
       return taskData;
-      // task.
-      // TODO: ^ add fields about completion and stuff or something
     }));
     const game = new Game({ rootIO, hostname: user.username, tasks });
     globals.games[game.getIndexVariable()] = game;
@@ -52,7 +50,6 @@ module.exports = {
     const game = globals.games[gameIndex];
     const existingPlayer = game.getPlayer(username);
     let speedyRejoin = false;
-    // TODO: do i still want ignore case??
     if (!passcode || (typeof passcode === "string" && game.passcode !== passcode.toLowerCase()))
       throw new Error("Wrong passcode!");
     // else if (typeof passcode === "object" && passcode.asHost) {

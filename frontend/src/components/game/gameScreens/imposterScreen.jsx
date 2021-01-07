@@ -7,7 +7,6 @@ export default function ImposterScreen(props) {
   const { players, username, myPlayer, totalTasks, completedTasks, qrScanIssue, setQrScanIssue, functions } = props;
   const { alive, tasks, pendingReport, imposters=[username], killTimer, pendingVictim, victims=[] } = myPlayer;
   const { sendQrScanResult, reportPlayer, unreadyReport, killPlayer, unreadyImposterKill } = functions;
-  // TODO: ^^ add params for sending qrscan result to server (asking for task completion)
 
   const [ stealthMode, setStealthMode ] = useState(false);
 

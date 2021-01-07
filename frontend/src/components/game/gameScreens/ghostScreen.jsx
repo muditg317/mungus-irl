@@ -58,7 +58,6 @@ export default function GhostScreen(props) {
           })}
         </div>
       </div>
-      {/*TODO:add scan task qr code button (fake it for imposter)*/}
     </>
     );
 }

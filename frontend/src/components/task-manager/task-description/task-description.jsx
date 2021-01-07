@@ -68,7 +68,8 @@ const UserTaskDescription = ({ task, errors, deleteTask, updateTask, ...props })
         </div>
       </div>
       <div className="flex flex-col">
-        <button onClick={deleteTask} className={`ml-auto p-2 flex flex-row items-center border border-red-500 rounded-full text-red-500 ${isMobile() ? `focus:outline-none focus:border-none focus:bg-red-500 focus:text-white` : `hover:border-none hover:bg-red-500 hover:text-white`}`}>
+        <div className="h-full w-fill ml-auto"></div>
+        <button onClick={deleteTask} className={`p-2 flex flex-row items-center border border-red-500 rounded-full text-red-500 ${isMobile() ? `focus:outline-none focus:border-none focus:bg-red-500 focus:text-white` : `hover:border-none hover:bg-red-500 hover:text-white`}`}>
           <p className={`hidden md:block mr-2`}>Delete</p><FontAwesomeIcon icon={['far','times-circle']} size='lg' />
         </button>
       </div>
@@ -76,26 +77,30 @@ const UserTaskDescription = ({ task, errors, deleteTask, updateTask, ...props })
   );
 };
 
-const MobileTaskDescription = ({ task, selected, selectTask, unselectTask }) => {
+const MobileTaskDescription = ({ task, selected, selectTask, unselectTask, previewTask }) => {
   const color = useMemo(() => selected ? "green" : "red", [selected]);
   return (
-    <div className="w-full py-2 first:pt-0 last:pb-0 flex flex-row items-center">
-      <div className="w-full">
-        <div className="w-full flex flex-wrap flex-row items-center justify-start">
+    <div className="w-full py-2 first:pt-0 last:pb-0 flex flex-row items-center justify-between">
+      <div className="h-full flex flex-row items-center">
+        <div className="w-full flex flex-row flex-wrap items-center justify-start">
           <p className="bg-transparent w-fit text-lg font-bold">{`${task.taskname || ''}`}</p>
           <p className="bg-transparent w-fit text-lg ml-1">{`${(task.format && `(${task.format})`) || ''}`}</p>
           {
             // <label className="mr-1">ID:</label>
             // <p className="bg-transparent w-fit text-base font-semibold">{`${task.qrID || ''}`}</p>
+          // </div>
+          // <div className="w-full flex flex-wrap flex-row lg:flex-row items-start lg:items-center">
           }
         </div>
-        <div className="w-full flex flex-wrap flex-row lg:flex-row items-start lg:items-center">
-
-        </div>
       </div>
-      <button onClick={selected ? unselectTask : selectTask} className={`ml-auto flex flex-row items-center rounded-full text-${color}-500 ${isMobile() ? `focus:outline-none focus:bg-transparent focus:text-${color}-500` : `hover:bg-${color}-500 hover:text-white`}`}>
-        <FontAwesomeIcon icon={[selected ? 'fas' : 'far','check-circle']} size='2x' />
-      </button>
+      <div className="h-full flex flex-row items-center">
+        <button onClick={previewTask} className={`p-2 flex flex-row items-center border border-blue-500 rounded-full text-blue-500 ${isMobile() ? `focus:outline-none focus:border-none focus:bg-blue-500 focus:text-white` : `hover:border-none hover:bg-blue-500 hover:text-white`}`}>
+          <p className={`mr-2`}>Preview</p><FontAwesomeIcon icon="search" size='lg' />
+        </button>
+        <button onClick={selected ? unselectTask : selectTask} className={`ml-2 flex flex-row items-center rounded-full text-${color}-500 ${isMobile() ? `focus:outline-none focus:bg-transparent focus:text-${color}-500` : `hover:bg-${color}-500 hover:text-white`}`}>
+          <FontAwesomeIcon icon={[selected ? 'fas' : 'far','check-circle']} size='2x' />
+        </button>
+      </div>
     </div>
   );
 };

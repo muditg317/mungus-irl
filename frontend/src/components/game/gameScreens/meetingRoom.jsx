@@ -28,7 +28,6 @@ export default function MeetingRoom(props) {
     }
   }, [voteReady]);
 
-  //TODO: only vote for living people
 
   return (
     <>
