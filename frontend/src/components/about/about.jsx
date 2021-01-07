@@ -1,8 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-
+import React from 'react';
 
 export default function About() {
-
   return (
     <div className="w-full h-fill flex flex-col p-2">
       <h1 className="text-2xl font-bold mb-2">About Mungus IRL</h1>

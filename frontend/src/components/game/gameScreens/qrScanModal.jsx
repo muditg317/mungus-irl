@@ -6,7 +6,6 @@ export default function QrScanModal(props) {
   const {
     videoRef,
     canvasRef,
-    mode,
     toggleMode,
     shown,
     onExit
@@ -41,7 +40,7 @@ export default function QrScanModal(props) {
       document.removeEventListener('keydown', escapePressedHandler);
     }
   }, [onExit, shown]);
-  
+
   // if (!shown) {
   //   return;
   // }
