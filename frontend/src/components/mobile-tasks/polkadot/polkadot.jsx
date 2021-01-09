@@ -1,13 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import Sketch from 'polyfills/react-p5';
 
-// import * as sketch from './sketch';
-
 import { map } from 'utils';
 
-const USE_SKETCH = true;
 const SCORE_TO_WIN = 7;
-const TASK_COMPLETION_TIME = 5000;
 
 const BOARD_SIZE = 250;
 const INITIAL_SIZE = 15;
@@ -82,7 +78,6 @@ const enemiesReducer = (state, action) => {
     const newAngle = currAngle * 0.3 + angleToCenter * 0.7;
     newEnemy.vx = speed * Math.cos(newAngle);
     newEnemy.vy = speed * Math.sin(newAngle);
-    console.log('spawn', newEnemy.x, newEnemy.y, BOARD_SIZE/2, angleToCenter, currAngle, newAngle);
     return [...state, newEnemy];
   }
   if (updateID) {
@@ -93,14 +88,11 @@ const enemiesReducer = (state, action) => {
   }
   if (stepAll) {
     return state.filter(enemy => {
-      // console.log(enemy);
       enemy.x += enemy.vx;
       enemy.y += enemy.vy;
       if (enemy.x < -enemy.size/2 || enemy.x > (BOARD_SIZE + enemy.size/2)
           || enemy.y < -enemy.size/2 || enemy.y > (BOARD_SIZE + enemy.size/2)) {
         return false;
-        // enemy.vx = 0;
-        // enemy.vy = 0;
       }
       return true;
     });
@@ -113,12 +105,10 @@ const enemiesReducer = (state, action) => {
 const Polkadot = (props) => {
   const { finish, onExit } = props;
   const completeTask = useCallback(() => {
-    console.log('complete');
+    // console.log('complete');
     finish();
     onExit(true);
   }, [finish, onExit]);
-
-  const gameDivRef = useRef();
 
   const [ finished, setFinished ] = useState(false);
   const [ alive, setAlive ] = useState(true);
@@ -146,17 +136,14 @@ const Polkadot = (props) => {
   const finishedTimeoutRef = useRef();
 
   const setup = useCallback((p5) => {
-    // console.log(p5);
-    // console.log('setup');
     p5.createCanvas(BOARD_SIZE, BOARD_SIZE);
     p5.noStroke();
-    // p5.background(...BACKGROUND_COLOR);
+    p5.background(...BACKGROUND_COLOR);
   }, []);
 
   const draw = useCallback((p5) => {
     if (finished) {
       setScore(prev => prev * 1.2);
-      // setScore();
       p5.background(...BACKGROUND_COLOR);
       enemies.forEach(enemy => {
         p5.fill(...enemy.color);
@@ -203,7 +190,6 @@ const Polkadot = (props) => {
   }, [score,finished,completeTask, enemies, x,y,playerSize]);
 
   const mousePressed = useCallback((p5) => {
-    console.log('mouse event');
     if (!alive) {
       restart(p5);
     }
@@ -211,54 +197,12 @@ const Polkadot = (props) => {
     setY(p5.mouseY);
   }, [alive,restart, setX,setY]);
   const touchStarted = useMemo(() => mousePressed, [mousePressed]);
-
   const mouseMoved = useMemo(() => mousePressed, [mousePressed]);
-  // const mouseMoved = useCallback((p5) => {
-  //   console.log('mouse move');
-  //   setX(p5.mouseX);
-  //   setY(p5.mouseY);
-  // }, [setX, setY]);
   const touchMoved = useMemo(() => mouseMoved, [mouseMoved]);
 
-  // useEffect(() => {
-  //   const handleMouseEvent = (event) => {
-  //     setX(event.offsetX);
-  //     setY(event.offsetY);
-  //   };
-  //   const handleTouchEvent = (event) => {
-  //     const touch = event.targetTouches[0];
-  //     if (touch) {
-  //       const boundingRect = gameDivRef.current.getBoundingClientRect();
-  //       if (touch.clientX > boundingRect.left && touch.clientX < boundingRect.right
-  //           && touch.clientY > boundingRect.top && touch.clientY < boundingRect.bottom) {
-  //         setX(touch.clientX - boundingRect.left);
-  //         setY(touch.clientY - boundingRect.top);
-  //       }
-  //     }
-  //   };
-  //   const gameDiv = gameDivRef.current;
-  //   gameDiv.addEventListener("mousedown", handleMouseEvent);
-  //   gameDiv.addEventListener("mousemove", handleMouseEvent);
-  //   gameDiv.addEventListener("touchstart", handleTouchEvent);
-  //   gameDiv.addEventListener("touchmove", handleTouchEvent);
-  //   return () => {
-  //     gameDiv.removeEventListener("mousedown", handleMouseEvent);
-  //     gameDiv.removeEventListener("mousemove", handleMouseEvent);
-  //     gameDiv.removeEventListener("touchstart", handleTouchEvent);
-  //     gameDiv.removeEventListener("touchmove", handleTouchEvent);
-  //   };
-  // }, [setX, setY]);
-
   useEffect(() => {
-    // !checkWinTimeoutRef.current && checkWinTimeoutRef.current = setTimeout(() => {
-    //   if (alive) {
-    //     console.log("yay you lasted enough time");
-    //     completeTask();
-    //   }
-    // }, TASK_COMPLETION_TIME);
     spawnEnemyIntervalRef.current = setInterval(() => {
       updateEnemies({spawnEnemy: { playerSize }});
-      // console.log('spawn enemy');
     }, 1000 / ENEMY_SPAWN_RATE);
     return () => {
       clearInterval(spawnEnemyIntervalRef.current);
@@ -271,56 +215,9 @@ const Polkadot = (props) => {
     };
   }, []);
 
-  // useEffect(() => {
-  //   const update = () => {
-  //     if (!alive) {
-  //       restart();
-  //       return;
-  //     }
-  //     updateEnemies({stepAll: true});
-  //     const collided = enemies.find(enemy => Math.hypot(enemy.x - x,enemy.y - y) < ((enemy.size + playerSize) * SCALE / 2));
-  //     if (collided) {
-  //       if (collided.size / playerSize <= (1 + MAX_PERC_DIFF)) {
-  //         setScore(prev => prev + 1);
-  //         updateEnemies({removeKey: collided.key});
-  //       } else {
-  //         setAlive(false);
-  //       }
-  //     }
-  //     // animationRequestRef.current = requestAnimationFrame(update);
-  //   };
-  //   animationRequestRef.current = setInterval(update, 100);
-  //   return () => {
-  //     clearInterval(animationRequestRef.current);
-  //   };
-  // }, [alive,restart, enemies, x,y,playerSize]);
-
-  // console.log(enemies);
   return (
     <>
-      { USE_SKETCH && <Sketch { ...{ setup, draw, mousePressed, mouseMoved, touchStarted, touchMoved } } width="BOARD_SIZE" height="BOARD_SIZE" /> }
-      { !USE_SKETCH && <div className="relative w-64 h-64 overflow-hidden" ref={gameDivRef} style={{
-          backgroundColor: `rgb(${BACKGROUND_COLOR})`
-        }}>
-        <div className="absolute rounded-full transform-gpu -translate-x-1/2 -translate-y-1/2" style={{
-            left: x,
-            top: y,
-            width: playerSize,
-            height: playerSize,
-            backgroundColor: `rgb(${PLAYER_COLOR})`
-          }}>
-          <p className="m-auto text-xs w-min h-min">{score}</p>
-        </div>
-        { enemies.map(enemy => {
-          return <div key={enemy.key} className="absolute rounded-full transform-gpu -translate-x-1/2 -translate-y-1/2" style={{
-              left: enemy.x,
-              top: enemy.y,
-              width: enemy.size,
-              height: enemy.size,
-              backgroundColor: `rgb(${enemy.color})`
-            }} />
-        })}
-      </div> }
+      <Sketch { ...{ setup, draw, mousePressed, mouseMoved, touchStarted, touchMoved } } width="BOARD_SIZE" height="BOARD_SIZE" />
       <div className="w-full flex">
         <p className="my-2 mx-auto text-2xl font-bold">
           {score < SCORE_TO_WIN ? `Score: ${score}/${SCORE_TO_WIN}` : "SUCCESS!!"}
