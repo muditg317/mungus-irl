@@ -64,7 +64,7 @@ export default function PreviewModal(props) {
 
         <div className='modal-content'>
           <div className='modal-header'>
-            <p className='modal-title'>{ !!mobileTask && mobileTask.taskname }</p>
+            <p className='modal-title'>{ !!mobileTask && mobileTask.longName }</p>
             <div onClick={onExit} className='modal-modal-close'>
               <FontAwesomeIcon icon={farTimesCircle} size='lg' />
             </div>

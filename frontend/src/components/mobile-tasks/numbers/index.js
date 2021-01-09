@@ -3,6 +3,7 @@ import Numbers from './numbers';
 const numbersInfo = {
   id: "346bjh7b67j5bh4j354235",
   taskname: "numbers",
+  longName: "Number Sequence",
   qrID: "ferjnfl",
   maxTime: 15,
   physicalDeviceID: '',

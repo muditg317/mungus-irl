@@ -3,6 +3,7 @@ import Polkadot from './polkadot';
 const polkadotInfo = {
   id: "54kjb867kj5blk353l",
   taskname: "polkadot",
+  longName: "Polkadot Escape!",
   qrID: "ferjnfl",
   maxTime: 15,
   physicalDeviceID: '',

@@ -143,3 +143,11 @@ export function shuffled(arr) {
 export function map(value, min, max, newMin, newMax) {
   return (value - min) / (max - min) * (newMax - newMin) + newMin;
 }
+
+export function randInRange(min, max, options) {
+  (options === undefined) && (max === undefined || typeof max === "number"? (options = {}) : ((options = max) && (max = min)));
+  (max === undefined) && (max = min) && (min = 0);
+  const { integer = false } = options;
+  const rand = Math.random() * (max - min) + min;
+  return integer ? Math.floor(rand) : rand;
+}

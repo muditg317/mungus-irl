@@ -6,6 +6,8 @@ import { map } from 'utils';
 const SCORE_TO_WIN = 7;
 
 const BOARD_SIZE = 250;
+const INTERACTION_MARGIN = 30;
+
 const INITIAL_SIZE = 15;
 const SIZE_INCR = 3;
 const MAX_SIZE = 150;
@@ -117,10 +119,10 @@ const Polkadot = (props) => {
   const [ x, _setX ] = useState(BOARD_SIZE / 2);
   const [ y, _setY ] = useState(BOARD_SIZE / 2);
   const setX = useCallback((newX) => {
-    finished ? _setX(newX) : _setX(Math.min(Math.max(newX, playerSize), BOARD_SIZE));
+    finished ? _setX(newX) : _setX(Math.min(Math.max(newX, playerSize), BOARD_SIZE - playerSize));
   }, [finished, playerSize]);
   const setY = useCallback((newY) => {
-    finished ? _setY(newY) : _setY(Math.min(Math.max(newY, playerSize), BOARD_SIZE));
+    finished ? _setY(newY) : _setY(Math.min(Math.max(newY, playerSize), BOARD_SIZE - playerSize));
   }, [finished, playerSize]);
 
   const [ enemies, updateEnemies ] = useReducer(enemiesReducer, []);
@@ -190,6 +192,9 @@ const Polkadot = (props) => {
   }, [score,finished,completeTask, enemies, x,y,playerSize]);
 
   const mousePressed = useCallback((p5, event) => {
+    if (!(p5.mouseX <= BOARD_SIZE+INTERACTION_MARGIN && p5.mouseX >= -INTERACTION_MARGIN && p5.mouseY <= BOARD_SIZE+INTERACTION_MARGIN && p5.mouseY >= -INTERACTION_MARGIN)) {
+      return;
+    }
     if (!alive) {
       restart(p5);
     }
@@ -211,7 +216,7 @@ const Polkadot = (props) => {
     return () => {
       clearInterval(spawnEnemyIntervalRef.current);
     }
-  }, [alive, completeTask, playerSize]);
+  }, [playerSize]);
 
   useEffect(() => {
     return () => {
@@ -221,7 +226,7 @@ const Polkadot = (props) => {
 
   return (
     <>
-      <Sketch { ...{ setup, draw, mousePressed, mouseMoved, touchStarted, touchMoved } } width="BOARD_SIZE" height="BOARD_SIZE" />
+      <Sketch { ...{ setup, draw, mousePressed, mouseMoved, touchStarted, touchMoved } } width={`${BOARD_SIZE}`} height={`${BOARD_SIZE}`} />
       <div className="w-full flex">
         <p className="my-2 mx-auto text-2xl font-bold">
           {score < SCORE_TO_WIN ? `Score: ${score}/${SCORE_TO_WIN}` : "SUCCESS!!"}
