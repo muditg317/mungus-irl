@@ -6,19 +6,19 @@ import { map } from 'utils';
 const SCORE_TO_WIN = 7;
 
 const BOARD_SIZE = 250;
-const INTERACTION_MARGIN = 30;
+const INTERACTION_MARGIN = 10;
 
 const INITIAL_SIZE = 15;
-const SIZE_INCR = 3;
-const MAX_SIZE = 150;
+const SIZE_INCR = 4;
+const MAX_SIZE = 120;
 const MIN_SIZE = 10;
-const MAX_PERC_DIFF = 0.02;
+const MAX_PERC_DIFF = 0.05;
 
-const MAX_ENEMIES = 20;
-const ENEMY_SPAWN_RATE = 3;
+const MAX_ENEMIES = 15;
+const ENEMY_SPAWN_RATE = 2.5;
 const PROB_CAN_EAT = 0.4;
 const MIN_SPEED = 0.25;
-const MAX_SPEED = 2;
+const MAX_SPEED = 1.75;
 
 const SCALE = 1;
 const BACKGROUND_COLOR = [180, 242, 114];
