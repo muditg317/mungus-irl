@@ -18,13 +18,11 @@ const MAX_SPEED = 3;
 const DONUT_THICK = 10;
 const DONUT_DIAM = 20;
 
-const SCALE = 1;
 const BACKGROUND_COLOR = [117, 203, 235];
 const PLAYER_COLOR = [245, 189, 149];
-const DONUT_COLOR = [135, 98, 245];
 
 const donutsReducer = (state, action) => {
-  const { spawnDonut, spawnRandom, updateID, newData, removeKey, reset, stepAll, caught } = action;
+  const { spawnDonut, spawnRandom, updateID, newData, removeKey, reset, stepAll } = action;
   if (reset) {
     return reset;
   }
