@@ -15,6 +15,8 @@ import availableMobileTasks from 'components/mobile-tasks';
 import { UserTaskDescription, MobileTaskDescription } from './task-description';
 import PreviewModal from './previewModal';
 
+const farCheckCircle = ['far','check-circle'];
+
 const areDifferent = (task1, task2) =>
   // console.log(task1, task2) ||
   !task1 || !task2
@@ -41,14 +43,15 @@ const userTaskListReducer = (state, action) => {
       format: 'short',
       canBeNonVisual: true,
       enabled: true,
-      saved: false
+      saved: false,
+      isNew: true
     }]);
   }
   if (updateID) {
     // state.find(task => task.id === updateID)[field] = newValue;
     // return state;
     // ^^ does not update state because of Object.is
-    return state.map(task => task.id !== updateID ? task : ({ ...task, [field]: newValue, saved: false }));
+    return state.map(task => task.id !== updateID ? task : ({ ...task, [field]: newValue, saved: false, isNew: false }));
   }
   console.log("unknown update action", state, action);
 };
@@ -105,7 +108,8 @@ const TaskManager = () => {
   // console.log(taskErrorsByIndex);
 
   const deleteTask = useCallback(taskToDelete => {
-    if (taskToDelete.taskname.trim().search(/^Task [\d]+$/) !== -1 && taskToDelete.maxTime === 20 && taskToDelete.format === 'short' && taskToDelete.canBeNonVisual) {
+    // const match = taskToDelete.taskname.trim().search(/^Task ([\d]+)$/);
+    if (taskToDelete.isNew) {//match && parseInt(match) === index + 1 && taskToDelete.enabled && taskToDelete.maxTime === 20 && taskToDelete.format === 'short' && taskToDelete.canBeNonVisual) {
       updateUserTaskData({deleteID:taskToDelete.id})
       return;
     }
@@ -181,35 +185,42 @@ const TaskManager = () => {
         <div className="w-full md:w-auto md:container mx-auto p-2 bg-gray-700 flex flex-col items-center">
           <div className="w-full flex flex-row items-center justify-between">
             <button onClick={() => history.push('/setup-tasks')} className="mr-auto min-w-fit p-2 flex flex-row items-center border border-blue-500 rounded-full hover:border-none hover:bg-blue-500 text-blue-500 hover:text-white">
-              <p className="block mr-2">Setup Tasks</p><FontAwesomeIcon icon={['fas','cogs']} size='lg' />
+              <p className="block mr-2">Setup Tasks</p><FontAwesomeIcon icon="cogs" size='lg' />
             </button>
             {anyUnsaved && <button onClick={saveTasks} className="ml-auto min-w-fit p-2 flex flex-row items-center border border-blue-500 rounded-full hover:border-none hover:bg-blue-500 text-blue-500 hover:text-white">
-              <p className="block mr-2">Save</p><FontAwesomeIcon icon={['far','check-circle']} size='lg' />
+              <p className="block mr-2">Save</p><FontAwesomeIcon icon={farCheckCircle} size='lg' />
             </button>}
           </div>
           <div className="w-full flex flex-row items-center justify-between mb-3">
             <h3 className="w-fill text-center text-lg">Physical Tasks</h3>
           </div>
           <div className="w-full mb-2 bg-gray-700 flex flex-col items-center divide-y divide-white">
-            {userTaskData.map((taskDatum, index, arr) => {
-              // console.log("user task", index, taskDatum, arr);
+            {userTaskData.map((taskDatum, index) => {
               return <UserTaskDescription key={taskDatum.id} task={taskDatum} errors={taskErrorsByIndex && taskErrorsByIndex[index]} deleteTask={() => deleteTask(taskDatum)} updateTask={updateUserTaskData} />
             })}
           </div>
           <button onClick={() => updateUserTaskData({create:true})} className="ml-auto self-end p-2 flex flex-row items-center border border-green-500 rounded-full hover:border-none hover:bg-green-500 text-green-500 hover:text-white">
-            <p className="hidden md:block mr-2">Add</p><FontAwesomeIcon icon={['fas','plus-circle']} size='lg' />
+            <p className="hidden md:block mr-2">Add</p><FontAwesomeIcon icon="plus-circle" size='lg' />
           </button>
         </div>
         <div className="w-full bg-gray-700 p-2">
           <h3 className="w-full bg-gray-700 text-center mb-3 text-lg">Mobile Tasks</h3>
           <div className="w-full bg-gray-700 flex flex-col items-center divide-y divide-white">
-            {state.taskManager.mobileTaskInfo.map((taskDatum, index) => {
+            { state.taskManager.mobileTaskInfo.map(taskDatum => {
               return <MobileTaskDescription key={taskDatum.id} task={taskDatum} selected={mobileTaskIDs.includes(taskDatum.id)} selectTask={() => setMobileTaskIDs(mobileTaskIDs.concat([taskDatum.id]))} unselectTask={() => setMobileTaskIDs(mobileTaskIDs.filter(taskID => taskID !== taskDatum.id))} previewTask={() => setPreview(availableMobileTasks[taskDatum.taskname])} />
+            })}
+            { Object.values(availableMobileTasks).filter(taskDatum => !state.taskManager.mobileTaskInfo.find(serverTask => serverTask.id === taskDatum.id)).map((taskDatum) => {
+              return <MobileTaskDescription key={taskDatum.id} experimental={true} task={taskDatum} previewTask={() => setPreview(availableMobileTasks[taskDatum.taskname])} />
             })}
           </div>
         </div>
       </div>
-      <PreviewModal mobileTask={preview} finish={() => setPreview()} shown={!!preview} onExit={() => setPreview()} selected={preview && mobileTaskIDs.includes(preview.id)} selectTask={preview && (() => setMobileTaskIDs(mobileTaskIDs.concat([preview.id])))} unselectTask={preview && (() => setMobileTaskIDs(mobileTaskIDs.filter(taskID => taskID !== preview.id)))} />
+      <PreviewModal mobileTask={preview} finish={() => setPreview()} shown={!!preview} onExit={() => setPreview()}
+          experimental={preview && !state.taskManager.mobileTaskInfo.find(serverTask => serverTask.id === preview.id)}
+          selected={preview && state.taskManager.mobileTaskInfo.find(serverTask => serverTask.id === preview.id) && mobileTaskIDs.includes(preview.id)}
+          selectTask={preview && state.taskManager.mobileTaskInfo.find(serverTask => serverTask.id === preview.id) && (() => setMobileTaskIDs(mobileTaskIDs.concat([preview.id])))}
+          unselectTask={preview && state.taskManager.mobileTaskInfo.find(serverTask => serverTask.id === preview.id) && (() => setMobileTaskIDs(mobileTaskIDs.filter(taskID => taskID !== preview.id)))}
+        />
     </div>
   );
 };

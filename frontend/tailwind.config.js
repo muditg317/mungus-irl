@@ -8,6 +8,8 @@ module.exports = {
     extend: {
       animation: {
         jiggle: 'jiggle 0.2s ease-in-out infinite',
+        'flash-red': 'flash-red 0.2s linear infinite',
+        'flash-green': 'flash-green 0.2s linear infinite'
       },
       boxShadow: {
         focus: '0 0 0 3px rgba(66, 153, 225, 0.5)',
@@ -24,6 +26,22 @@ module.exports = {
         jiggle: {
           '0%, 100%': { transform: 'rotate(-1deg)' },
           '50%': { transform: 'rotate(1deg)' },
+        },
+        'flash-red': {
+          '0%': { backgroundColor: 'rgb(239, 68, 68)' },
+          '49.999%': { backgroundColor: 'rgb(239, 68, 68)' },
+          '50%': { backgroundColor: 'transparent' },
+          '100%': { backgroundColor: 'transparent' },
+        },
+        'flash-green': {
+          '0%': { backgroundColor: 'rgb(16, 185, 129)' },
+          '24.999%': { backgroundColor: 'rgb(16, 185, 129)' },
+          '25%': { backgroundColor: 'transparent' },
+          '49.999%': { backgroundColor: 'transparent' },
+          '50%': { backgroundColor: 'rgb(16, 185, 129)' },
+          '74.999%': { backgroundColor: 'rgb(16, 185, 129)' },
+          '75%': { backgroundColor: 'transparent' },
+          '100%': { backgroundColor: 'transparent' },
         }
       },
       maxHeight: {

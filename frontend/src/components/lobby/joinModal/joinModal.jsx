@@ -5,6 +5,8 @@ import { handleChange } from 'utils';
 // import { loginUserAction, registerUserAction, clearErrorsAction } from 'state-management/actions/authActions';
 // import { store } from 'state-management';
 
+const farTimesCircle = ['far','times-circle'];
+
 const JoinModal = ({ shown, username, setUsername, attemptJoin, onExit }) => {
   const { joinError } = (typeof shown) === "string" ? {} : shown;
   // console.log(`joinError: ${joinError}\nusername:${username}`);
@@ -85,7 +87,7 @@ const JoinModal = ({ shown, username, setUsername, attemptJoin, onExit }) => {
       <div className='modal-container' ref={modalContainerRef} >
 
         <div onClick={onExit} className='modal-window-close'>
-          <FontAwesomeIcon icon={['far','times-circle']} size='lg' />
+          <FontAwesomeIcon icon={farTimesCircle} size='lg' />
           <span className='text-sm'>(Esc)</span>
         </div>
 
@@ -93,7 +95,7 @@ const JoinModal = ({ shown, username, setUsername, attemptJoin, onExit }) => {
           <div className='modal-header'>
             <p className='modal-title'>Join game</p>
             <div onClick={onExit} className='modal-modal-close'>
-              <FontAwesomeIcon icon={['far','times-circle']} size='lg' />
+              <FontAwesomeIcon icon={farTimesCircle} size='lg' />
             </div>
           </div>
           <div className='modal-body'>

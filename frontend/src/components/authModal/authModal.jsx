@@ -8,6 +8,8 @@ import { store } from 'state-management';
 import LoginForm from './login';
 import RegisterForm from './register';
 
+const farTimesCircle = ['far','times-circle'];
+
 const AuthModal = ({ shown, registered: isRegistered, onExit, authSuccessRedirect }) => {
   const { state, dispatch } = useContext(store);
   const loginUser = useCallback((...args) => loginUserAction(dispatch)(...args), [dispatch]);
@@ -125,7 +127,7 @@ const AuthModal = ({ shown, registered: isRegistered, onExit, authSuccessRedirec
       <div className='modal-container' ref={modalContainerRef} >
 
         <div onClick={onExit} className='modal-window-close'>
-          <FontAwesomeIcon icon={['far','times-circle']} size='lg' />
+          <FontAwesomeIcon icon={farTimesCircle} size='lg' />
           <span className='text-sm'>(Esc)</span>
         </div>
 
@@ -133,7 +135,7 @@ const AuthModal = ({ shown, registered: isRegistered, onExit, authSuccessRedirec
           <div className='modal-header'>
             <p className='modal-title'>Sign up/Log in</p>
             <div onClick={onExit} className='modal-modal-close'>
-              <FontAwesomeIcon icon={['far','times-circle']} size='lg' />
+              <FontAwesomeIcon icon={farTimesCircle} size='lg' />
             </div>
           </div>
           <div className='modal-body'>

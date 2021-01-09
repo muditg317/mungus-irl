@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 
+const farTimesCircle = ['far','times-circle'];
 
 export default function QrScanModal(props) {
   const {
@@ -51,7 +52,7 @@ export default function QrScanModal(props) {
       <div className='modal-container' ref={modalContainerRef} >
 
         <div onClick={onExit} className='modal-window-close'>
-          <FontAwesomeIcon icon={['far','times-circle']} size='lg' />
+          <FontAwesomeIcon icon={farTimesCircle} size='lg' />
           <span className='text-sm'>(Esc)</span>
         </div>
 
@@ -59,7 +60,7 @@ export default function QrScanModal(props) {
           <div className='modal-header'>
             <p className='modal-title'>Scan a QR Code</p>
             <div onClick={onExit} className='modal-modal-close'>
-              <FontAwesomeIcon icon={['far','times-circle']} size='lg' />
+              <FontAwesomeIcon icon={farTimesCircle} size='lg' />
             </div>
           </div>
           <div className='modal-body'>

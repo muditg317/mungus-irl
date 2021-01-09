@@ -3,12 +3,16 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 
 import { isMobile } from 'utils';
 
+const farTimesCircle = ['far','times-circle'];
+const farCheckCircle = ['far','check-circle'];
+
 export default function PreviewModal(props) {
   const {
     mobileTask,
     finish,
     shown,
     onExit,
+    experimental = false,
     selected, selectTask, unselectTask
   } = props;
   const color = useMemo(() => selected ? 'green' : 'red', [selected]);
@@ -54,7 +58,7 @@ export default function PreviewModal(props) {
       <div className='modal-container' ref={modalContainerRef} >
 
         <div onClick={onExit} className='modal-window-close'>
-          <FontAwesomeIcon icon={['far','times-circle']} size='lg' />
+          <FontAwesomeIcon icon={farTimesCircle} size='lg' />
           <span className='text-sm'>(Esc)</span>
         </div>
 
@@ -62,7 +66,7 @@ export default function PreviewModal(props) {
           <div className='modal-header'>
             <p className='modal-title'>{ !!mobileTask && mobileTask.taskname }</p>
             <div onClick={onExit} className='modal-modal-close'>
-              <FontAwesomeIcon icon={['far','times-circle']} size='lg' />
+              <FontAwesomeIcon icon={farTimesCircle} size='lg' />
             </div>
           </div>
           <div className='modal-body'>
@@ -72,9 +76,9 @@ export default function PreviewModal(props) {
                 <button className="m-1 p-2 text-base text-center font-semibold text-red-500 rounded-md border border-red-500" onClick={onExit}>
                   Exit Preview
                 </button>
-                <button onClick={selected ? unselectTask : selectTask} className={`ml-2 flex flex-row items-center rounded-full text-${color}-500 ${isMobile() ? `focus:outline-none focus:bg-transparent focus:text-${color}-500` : `hover:bg-${color}-500 hover:text-white`}`}>
-                  <FontAwesomeIcon icon={[selected ? 'fas' : 'far','check-circle']} size='2x' />
-                </button>
+                { !experimental && <button onClick={selected ? unselectTask : selectTask} className={`ml-2 flex flex-row items-center rounded-full text-${color}-500 ${isMobile() ? `focus:outline-none focus:bg-transparent focus:text-${color}-500` : `hover:bg-${color}-500 hover:text-white`}`}>
+                  <FontAwesomeIcon icon={selected ? 'check-circle' : farCheckCircle} size='2x' />
+                </button> }
               </div>
             </div>
           </div>

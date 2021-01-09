@@ -1,11 +1,18 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 
 
 const Whiteboard = (props) => {
   const { finish, onExit } = props;
+  const completeTask = useCallback(() => {
+    finish();
+    onExit(true);
+  }, [finish, onExit]);
+
+
+
   return (
     <>
-      <button onClick={() => finish() || onExit(true)}>finish</button>
+      <button onClick={completeTask}>finish</button>
     </>
   );
 };

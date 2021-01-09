@@ -123,3 +123,23 @@ export function clamp(value, min, max) {
   value = typeof value !== 'number' ? parseFloat(value) : value;
   return Math.min(Math.max(value, min), max);
 }
+
+export function getRandomSubarray(arr, size) {
+  // if (size === undefined) size = arr.length;
+  let shuffled = arr.slice(0), i = arr.length, min = i - size, temp, index;
+  while (i-- > min) {
+    index = Math.floor((i + 1) * Math.random());
+    temp = shuffled[index];
+    shuffled[index] = shuffled[i];
+    shuffled[i] = temp;
+  }
+  return shuffled.slice(min);
+}
+
+export function shuffled(arr) {
+  return getRandomSubarray(arr, arr.length);
+}
+
+export function map(value, min, max, newMin, newMax) {
+  return (value - min) / (max - min) * (newMax - newMin) + newMin;
+}

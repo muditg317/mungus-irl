@@ -3,6 +3,9 @@ import React, { useMemo } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { isEmpty, isMobile, clamp } from 'utils';
 
+const farTimesCircle = ['far','times-circle'];
+const farCheckCircle = ['far','check-circle'];
+
 const handleChange = (field, object, setter, constraint) => {
   return event => {
     let value;
@@ -37,7 +40,7 @@ const UserTaskDescription = ({ task, errors, deleteTask, updateTask, ...props })
           <label className="mr-1 text-lg">Name:</label>
           <input className="bg-gray-800 rounded-md pl-1 text-lg font-bold" value={`${task.taskname || ''}`} onChange={handleChange('taskname',task,updateTask,{maxLength:15})} size="10" maxLength="15"/>
           <button onClick={handleChange('enabled',task,updateTask,{toggle:true})} className={`ml-auto p-0.5 pl-1 text-sm flex flex-row items-center border border-${color}-500 rounded-full text-${color}-500 ${isMobile() ? `focus:outline-none focus:bg-transparent focus:text-${color}-500` : `hover:bg-${color}-500 hover:text-white`}`}>
-            <p className={`mr-2`}>{task.enabled ? "Enabled" : "Disabled"}</p><FontAwesomeIcon icon={[task.enabled ? "fas" : "far",`${task.enabled ? "check" : "times"}-circle`]} size='lg' />
+            <p className={`mr-2`}>{task.enabled ? "Enabled" : "Disabled"}</p><FontAwesomeIcon icon={task.enabled ? "check-circle" : farTimesCircle} size='lg' />
           </button>
           {taskError.taskname && <p className="text-red-500 text-sm">{taskError.taskname}</p>}
         </div>
@@ -70,14 +73,14 @@ const UserTaskDescription = ({ task, errors, deleteTask, updateTask, ...props })
       <div className="flex flex-col">
         <div className="h-full w-fill ml-auto"></div>
         <button onClick={deleteTask} className={`p-2 flex flex-row items-center border border-red-500 rounded-full text-red-500 ${isMobile() ? `focus:outline-none focus:border-none focus:bg-red-500 focus:text-white` : `hover:border-none hover:bg-red-500 hover:text-white`}`}>
-          <p className={`hidden md:block mr-2`}>Delete</p><FontAwesomeIcon icon={['far','times-circle']} size='lg' />
+          <p className={`hidden md:block mr-2`}>Delete</p><FontAwesomeIcon icon={farTimesCircle} size='lg' />
         </button>
       </div>
     </div>
   );
 };
 
-const MobileTaskDescription = ({ task, selected, selectTask, unselectTask, previewTask }) => {
+const MobileTaskDescription = ({ experimental=false, task, selected, selectTask, unselectTask, previewTask }) => {
   const color = useMemo(() => selected ? "green" : "red", [selected]);
   return (
     <div className="w-full py-2 first:pt-0 last:pb-0 flex flex-row items-center justify-between">
@@ -85,7 +88,7 @@ const MobileTaskDescription = ({ task, selected, selectTask, unselectTask, previ
         <div className="w-full flex flex-row flex-wrap items-center justify-start">
           <p className="bg-transparent w-fit text-lg font-bold">{`${task.taskname || ''}`}</p>
           <p className="bg-transparent w-fit text-lg ml-1">{`${(task.format && `(${task.format})`) || ''}`}</p>
-          {
+          { experimental && <p className="bg-transparent w-fit text-lg ml-1">{`Experimental!`}</p>
             // <label className="mr-1">ID:</label>
             // <p className="bg-transparent w-fit text-base font-semibold">{`${task.qrID || ''}`}</p>
           // </div>
@@ -97,9 +100,9 @@ const MobileTaskDescription = ({ task, selected, selectTask, unselectTask, previ
         <button onClick={previewTask} className={`p-2 flex flex-row items-center border border-blue-500 rounded-full text-blue-500 ${isMobile() ? `focus:outline-none focus:border-none focus:bg-blue-500 focus:text-white` : `hover:border-none hover:bg-blue-500 hover:text-white`}`}>
           <p className={`mr-2`}>Preview</p><FontAwesomeIcon icon="search" size='lg' />
         </button>
-        <button onClick={selected ? unselectTask : selectTask} className={`ml-2 flex flex-row items-center rounded-full text-${color}-500 ${isMobile() ? `focus:outline-none focus:bg-transparent focus:text-${color}-500` : `hover:bg-${color}-500 hover:text-white`}`}>
-          <FontAwesomeIcon icon={[selected ? 'fas' : 'far','check-circle']} size='2x' />
-        </button>
+        { !experimental && <button onClick={selected ? unselectTask : selectTask} className={`ml-2 flex flex-row items-center rounded-full text-${color}-500 ${isMobile() ? `focus:outline-none focus:bg-transparent focus:text-${color}-500` : `hover:bg-${color}-500 hover:text-white`}`}>
+          <FontAwesomeIcon icon={selected ? 'check-circle' : farCheckCircle} size='2x' />
+        </button> }
       </div>
     </div>
   );
