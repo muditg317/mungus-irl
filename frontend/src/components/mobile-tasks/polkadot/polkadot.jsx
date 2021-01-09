@@ -226,7 +226,7 @@ const Polkadot = (props) => {
 
   return (
     <>
-      <Sketch { ...{ setup, draw, mousePressed, mouseMoved, touchStarted, touchMoved } } width={`${BOARD_SIZE}`} height={`${BOARD_SIZE}`} />
+      <Sketch className={`${finished ? "animate-jiggle" : ""}`} { ...{ setup, draw, mousePressed, mouseMoved, touchStarted, touchMoved } } width={`${BOARD_SIZE}`} height={`${BOARD_SIZE}`} />
       <div className="w-full flex">
         <p className="my-2 mx-auto text-2xl font-bold">
           {score < SCORE_TO_WIN ? `Score: ${score}/${SCORE_TO_WIN}` : "SUCCESS!!"}
