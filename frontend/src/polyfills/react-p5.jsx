@@ -45,8 +45,8 @@ export default function Sketch(props) {
         p5Events.forEach((event) => {
           if (events[event]) {
             p[`_internal_${event}`] = events[event];
-            p[event] = () => {
-              p[`_internal_${event}`](p);
+            p[event] = (...args) => {
+              p[`_internal_${event}`](p, ...args);
             };
           }
         });
@@ -55,7 +55,7 @@ export default function Sketch(props) {
       // console.log('update sketch');
       p5Events.forEach((event) => {
         if (events[event] && events[event] !== sketchRef.current[`_internal_${event}`]) {
-          console.log(event,"changed");
+          // console.log(event,"changed");
           sketchRef.current[`_internal_${event}`] = events[event];
         }
       });

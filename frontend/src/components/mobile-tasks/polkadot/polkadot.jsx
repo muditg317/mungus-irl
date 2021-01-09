@@ -189,12 +189,16 @@ const Polkadot = (props) => {
     p5.noStroke();
   }, [score,finished,completeTask, enemies, x,y,playerSize]);
 
-  const mousePressed = useCallback((p5) => {
+  const mousePressed = useCallback((p5, event) => {
     if (!alive) {
       restart(p5);
     }
     setX(p5.mouseX);
     setY(p5.mouseY);
+    event.preventDefault();
+    event.stopPropagation();
+    event.returnValue = '';
+    return false;
   }, [alive,restart, setX,setY]);
   const touchStarted = useMemo(() => mousePressed, [mousePressed]);
   const mouseMoved = useMemo(() => mousePressed, [mousePressed]);
