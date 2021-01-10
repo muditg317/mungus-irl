@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import useQrScanner from 'hooks/useQrScanner';
+import { useQrScanner } from 'hooks';
 
 import QrScanModal from './qrScanModal';
 import TaskModal from './taskModal';
