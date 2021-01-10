@@ -1028,8 +1028,9 @@ module.exports = class Game {
           return ret;
         }
       } else {
-        player.socket && player.socket.emit("badQrScan", { issue: "Nice task faking you IMPOSTER" });
-        return false;
+        const ret = this.startTask(player, task);
+        // player.socket && player.socket.emit("fakeTask", { issue: "Nice task faking you IMPOSTER" });
+        return ret;
       }
     } else if (qrData in this.players) {
       // console.log('scan player', qrData, player.username);
@@ -1043,7 +1044,7 @@ module.exports = class Game {
   }
 
   startTask(player, task) {
-    if (!player || !(player.username in this.players)) {
+    if (!player || !(player.username in this.players) || !player.alive) {
       return false;
     }
     if (!task || !(task.qrID in this.tasks) || !(task.qrID in player.tasks)) {
@@ -1053,14 +1054,19 @@ module.exports = class Game {
     if (activePlayerTasks.length) {
       return false;
     }
-    const taskState = player.tasks[task.qrID];
-    if (task.physicalDeviceID) {
-      task.inUse = true;
-      task.socket && task.socket.emit("begin", { username: player.username });
+    if (player.username in this.crewmates) {
+      const taskState = player.tasks[task.qrID];
+      if (task.physicalDeviceID) {
+        task.inUse = true;
+        task.socket && task.socket.emit("begin", { username: player.username });
+      } else {
+      }
+      taskState.active = true;
+      player.socket && player.socket.emit("beginTask", { taskname: task.taskname });
     } else {
+      // TODO: faking physical tasks
+      player.socket && player.socket.emit("fakeTask", { taskname: task.taskname });
     }
-    taskState.active = true;
-    player.socket && player.socket.emit("beginTask", { taskname: task.taskname });
     return true;
   }
 

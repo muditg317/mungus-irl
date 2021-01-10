@@ -2,11 +2,12 @@ import React, { useMemo, useState } from 'react';
 import useQrScanner from 'hooks/useQrScanner';
 
 import QrScanModal from './qrScanModal';
+import TaskModal from './taskModal';
 
 export default function ImposterScreen(props) {
-  const { players, username, myPlayer, totalTasks, completedTasks, qrScanIssue, setQrScanIssue, functions } = props;
+  const { players, username, myPlayer, totalTasks, completedTasks, qrScanIssue, setQrScanIssue, fakeMobileTask, functions } = props;
   const { alive, tasks, pendingReport, imposters=[username], killTimer, pendingVictim, victims=[] } = myPlayer;
-  const { sendQrScanResult, reportPlayer, unreadyReport, killPlayer, unreadyImposterKill } = functions;
+  const { sendQrScanResult, reportPlayer, unreadyReport, killPlayer, unreadyImposterKill, stopFakingTask } = functions;
 
   const [ stealthMode, setStealthMode ] = useState(false);
 
@@ -144,6 +145,7 @@ export default function ImposterScreen(props) {
         </button>
       </div> }
       { <QrScanModal { ...{ videoRef, canvasRef, mode, toggleMode } } shown={alive && scanning} onExit={() => toggleScanning()} /> }
+      { <TaskModal { ...{ mobileTask: fakeMobileTask, iGotKilled: stopFakingTask } } finish={stopFakingTask} shown={alive && !!fakeMobileTask} onExit={stopFakingTask} /> }
     </>
     );
 }

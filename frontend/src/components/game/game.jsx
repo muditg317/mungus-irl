@@ -334,6 +334,12 @@ export default function Game() {
         // MAYBE: figure out logic for clearing this state in meetings etc
       }
     });
+    socketRef.current.on('fakeTask', data => {
+      // updateTasksDatum(data.taskname, {completed: false, active: true, awaitingRescan: undefined});
+      if (data.taskname in availableMobileTasks) {
+        setMobileTask(availableMobileTasks[data.taskname]);
+      }
+    });
     socketRef.current.on('stopTask', data => {
       updateTasksDatum(data.taskname, {completed: false, active: false, awaitingRescan: undefined});
       if (data.taskname in availableMobileTasks) {
@@ -546,6 +552,10 @@ export default function Game() {
     socketRef.current && socketRef.current.emit('stopMobileTask', { mobileTask: { taskname: mobileTask.taskname, qrID: mobileTask.qrID } });
   }, [mobileTask]);
 
+  const stopFakingTask = useCallback(() => {
+    setMobileTask();
+  }, []);
+
   const finishMobileTask = useCallback(() => {
     // TODO: ensure that this is called from the actual mobile task
     socketRef.current && socketRef.current.emit('finishMobileTask', { mobileTask: { taskname: mobileTask.taskname, qrID: mobileTask.qrID } });
@@ -572,8 +582,9 @@ export default function Game() {
   const imposterFunctions = useMemo(() => ({
     ...livingPlayerFunctions,
     killPlayer,
-    unreadyImposterKill
-  }), [livingPlayerFunctions, killPlayer, unreadyImposterKill]);
+    unreadyImposterKill,
+    stopFakingTask
+  }), [livingPlayerFunctions, killPlayer, unreadyImposterKill, stopFakingTask]);
 
   const ghostFunctions = useMemo(() => ({
     ...inGameFunctions,
@@ -639,7 +650,7 @@ export default function Game() {
                       ? <CrewmateScreen { ...{ players, username, hostname, myPlayer, totalTasks, completedTasks, qrScanIssue, setQrScanIssue, mobileTask } } functions={crewmateFunctions} />
                       : <GhostScreen { ...{ players, username, hostname, myPlayer, totalTasks, completedTasks } } functions={ghostFunctions} />
                   )}
-                  { myPlayer.role === "IMPOSTER" && <ImposterScreen { ...{ players, username, hostname, myPlayer, totalTasks, completedTasks, qrScanIssue, setQrScanIssue } } functions={imposterFunctions}/> }
+                  { myPlayer.role === "IMPOSTER" && <ImposterScreen { ...{ players, username, hostname, myPlayer, totalTasks, completedTasks, qrScanIssue, setQrScanIssue, fakeMobileTask: mobileTask } } functions={imposterFunctions}/> }
                 </>)
               : <EndScreen { ...{ winners, crewmates, imposters, username, hostname } } resetGame={username === hostname && resetGame} />)
           }
