@@ -7,7 +7,7 @@ const tracerInfo = {
   qrID: "ferjnfl",
   maxTime: 15,
   physicalDeviceID: '',
-  format: 'long',
+  format: 'short',
   predecessorTasks: [],
   successorTasks: [],
   canBeNonVisual: true,
