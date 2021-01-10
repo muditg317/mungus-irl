@@ -9,8 +9,9 @@ const BOARD_HEIGHT = BOARD_WIDTH / 2;
 const INTERACTION_MARGIN = 10;
 
 const TRACER_SIZE = 20;
-const POINT_SIZE = 15;
-const PATH_WIDTH = 7.5;
+const POINT_SIZE = 17.5;
+const PATH_WIDTH = 3;
+const DOTTED_WIDTH = 10;
 
 const NUM_POINTS = 4;
 const MAX_TRACING_ERROR = 25; // number of pixels you can deviate from path without losing hold
@@ -92,12 +93,21 @@ const Tracer = (props) => {
       pathPoints.forEach((point, index) => {
         if (index < pathPoints.length - 1) {
           const nextPoint = pathPoints[index+1];
-          p5.stroke(...[...PATH_COLOR, 150]);
+          const color = [...PATH_COLOR, 200];
+          p5.stroke(...color);
+          p5.strokeWeight(DOTTED_WIDTH);
+          p5.drawingContext.setLineDash([10, 10]);
+          p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
+          p5.drawingContext.setLineDash([]);
+          p5.stroke(...BACKGROUND_COLOR);
+          p5.strokeWeight(DOTTED_WIDTH-2);
+          p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
+          p5.stroke(...color);
           p5.strokeWeight(PATH_WIDTH);
           p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
           p5.noStroke();
         }
-        p5.fill(...REACHED_POINT_COLOR);
+        p5.fill(...(index < progress ? REACHED_POINT_COLOR : POINT_COLOR));
         p5.circle(point.x,point.y, POINT_SIZE);
       });
       p5.fill(...TRACER_COLOR);
@@ -122,7 +132,7 @@ const Tracer = (props) => {
       }
     } else {
       const xOff = x - currentLine.p1.x;
-      const delta = -Math.min(Math.max(xOff/2, 5), xOff);
+      const delta = -Math.min(Math.max(xOff/3, 5), xOff);
       xOff && setX(x + delta);
       // setY(y + delta*currentLine.slope);
     }
@@ -130,7 +140,16 @@ const Tracer = (props) => {
     pathPoints.forEach((point, index) => {
       if (index < pathPoints.length - 1) {
         const nextPoint = pathPoints[index+1];
-        p5.stroke(...[...PATH_COLOR, index < progress-1 ? 150 : (Math.sin(p5.millis() / 200) + 1) / 2 * 100+50]);
+        const color = [...PATH_COLOR, index < progress-1 ? 200 : (Math.sin(p5.millis() / 200) + 1) / 2 * 100+50];
+        p5.stroke(...color);
+        p5.strokeWeight(DOTTED_WIDTH);
+        p5.drawingContext.setLineDash([10, 10]);
+        p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
+        p5.drawingContext.setLineDash([]);
+        p5.stroke(...BACKGROUND_COLOR);
+        p5.strokeWeight(DOTTED_WIDTH-2);
+        p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
+        p5.stroke(...color);
         p5.strokeWeight(PATH_WIDTH);
         p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
         p5.noStroke();
@@ -138,8 +157,10 @@ const Tracer = (props) => {
       p5.fill(...(index < progress ? REACHED_POINT_COLOR : POINT_COLOR));
       p5.circle(point.x,point.y, POINT_SIZE);
     });
-    p5.fill(...TRACER_COLOR);
     p5.push();
+    p5.stroke(...TRACER_COLOR);
+    p5.strokeWeight(2);
+    p5.noFill();
     p5.translate(x,currentLine(x));
     p5.rotate(currentLine.angle-Math.PI/2);
     p5.triangle(-TRACER_SIZE/2, -TRACER_SIZE/2, TRACER_SIZE/2, -TRACER_SIZE/2, 0, TRACER_SIZE);
