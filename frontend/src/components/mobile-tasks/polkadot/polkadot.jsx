@@ -205,9 +205,9 @@ const Polkadot = (props) => {
     event.returnValue = '';
     return false;
   }, [alive,restart, setX,setY]);
-  const touchStarted = useMemo(() => mousePressed, [mousePressed]);
-  const mouseMoved = useMemo(() => mousePressed, [mousePressed]);
-  const touchMoved = useMemo(() => mouseMoved, [mouseMoved]);
+  const touchStarted = mousePressed;
+  const mouseDragged = mousePressed;
+  const touchMoved = mouseDragged;
 
   useEffect(() => {
     spawnEnemyIntervalRef.current = setInterval(() => {
@@ -226,7 +226,7 @@ const Polkadot = (props) => {
 
   return (
     <>
-      <Sketch className={`${finished ? "animate-jiggle" : ""}`} { ...{ setup, draw, mousePressed, mouseMoved, touchStarted, touchMoved } } width={`${BOARD_SIZE}`} height={`${BOARD_SIZE}`} />
+      <Sketch className={`${finished ? "animate-jiggle" : ""}`} { ...{ setup, draw, mousePressed, mouseDragged, touchStarted, touchMoved } } width={`${BOARD_SIZE}`} height={`${BOARD_SIZE}`} />
       <div className="w-full flex">
         <p className="my-2 mx-auto text-2xl font-bold">
           {score < SCORE_TO_WIN ? `Score: ${score}/${SCORE_TO_WIN}` : "SUCCESS!!"}

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import Sketch from 'polyfills/react-p5';
 
 import { randInRange } from 'utils';
@@ -183,9 +183,9 @@ const Donuts = (props) => {
     event.returnValue = '';
     return false;
   }, [setX]);
-  const touchStarted = useMemo(() => mousePressed, [mousePressed]);
-  const mouseMoved = useMemo(() => mousePressed, [mousePressed]);
-  const touchMoved = useMemo(() => mouseMoved, [mouseMoved]);
+  const touchStarted = mousePressed;
+  const mouseDragged = mousePressed;
+  const touchMoved = mouseDragged;
 
   useEffect(() => {
     spawnDonutIntervalRef.current = setInterval(() => {
@@ -204,7 +204,7 @@ const Donuts = (props) => {
 
   return (
     <>
-      <Sketch className={`${finished ? "animate-ping" : ""}`} { ...{ setup, draw, mousePressed, mouseMoved, touchStarted, touchMoved } } width={`${BOARD_SIZE}`} height={`${BOARD_SIZE}`} />
+      <Sketch className={`${finished ? "animate-ping" : ""}`} { ...{ setup, draw, mousePressed, mouseDragged, touchStarted, touchMoved } } width={`${BOARD_SIZE}`} height={`${BOARD_SIZE}`} />
       <div className="w-full flex">
         <p className="my-2 mx-auto text-2xl font-bold">
           {score < SCORE_TO_WIN ? `Score: ${score}/${SCORE_TO_WIN}` : "SUCCESS!!"}
