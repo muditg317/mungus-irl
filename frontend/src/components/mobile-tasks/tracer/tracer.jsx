@@ -18,7 +18,7 @@ const MAX_TRACING_ERROR = 25; // number of pixels you can deviate from path with
 const INCR_X = BOARD_WIDTH / (NUM_POINTS + 1);
 
 const BACKGROUND_COLOR = [88, 130, 209];
-const TRACER_COLOR = [176, 196, 235];
+const TRACER_COLOR = [153, 180, 232];//176, 196, 235|131, 164, 230
 const POINT_COLOR = [190, 196, 207];
 const REACHED_POINT_COLOR = [232, 238, 250];
 const PATH_COLOR = [209, 213, 222];
@@ -75,8 +75,8 @@ const Tracer = (props) => {
   }, [pathPoints, progress]);
   const [ x, _setX ] = useState(INCR_X);
   const setX = useCallback((newX) => {
-    _setX(Math.min(Math.max(newX, INCR_X), BOARD_WIDTH - INCR_X));
-  }, []);
+    finished ? _setX(newX) : _setX(Math.min(Math.max(newX, currentLine.p1.x), BOARD_WIDTH - INCR_X));
+  }, [finished, currentLine]);
 
   const finishedTimeoutRef = useRef();
 
@@ -96,14 +96,14 @@ const Tracer = (props) => {
           const color = [...PATH_COLOR, 200];
           p5.stroke(...color);
           p5.strokeWeight(DOTTED_WIDTH);
-          p5.drawingContext.setLineDash([10, 10]);
-          p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
-          p5.drawingContext.setLineDash([]);
-          p5.stroke(...BACKGROUND_COLOR);
-          p5.strokeWeight(DOTTED_WIDTH-2);
-          p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
-          p5.stroke(...color);
-          p5.strokeWeight(PATH_WIDTH);
+          // p5.drawingContext.setLineDash([10, 10]);
+          // p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
+          // p5.drawingContext.setLineDash([]);
+          // p5.stroke(...BACKGROUND_COLOR);
+          // p5.strokeWeight(DOTTED_WIDTH-2);
+          // p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
+          // p5.stroke(...color);
+          // p5.strokeWeight(PATH_WIDTH);
           p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
           p5.noStroke();
         }
@@ -143,14 +143,16 @@ const Tracer = (props) => {
         const color = [...PATH_COLOR, index < progress-1 ? 200 : (Math.sin(p5.millis() / 200) + 1) / 2 * 100+50];
         p5.stroke(...color);
         p5.strokeWeight(DOTTED_WIDTH);
-        p5.drawingContext.setLineDash([10, 10]);
-        p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
-        p5.drawingContext.setLineDash([]);
-        p5.stroke(...BACKGROUND_COLOR);
-        p5.strokeWeight(DOTTED_WIDTH-2);
-        p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
-        p5.stroke(...color);
-        p5.strokeWeight(PATH_WIDTH);
+        if (index >= progress-1) {
+          p5.drawingContext.setLineDash([10, 10]);
+          p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
+          p5.drawingContext.setLineDash([]);
+          p5.stroke(...BACKGROUND_COLOR);
+          p5.strokeWeight(DOTTED_WIDTH-2);
+          p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
+          p5.stroke(...color);
+          p5.strokeWeight(PATH_WIDTH);
+        }
         p5.line(point.x, point.y, nextPoint.x, nextPoint.y);
         p5.noStroke();
       }
@@ -158,9 +160,9 @@ const Tracer = (props) => {
       p5.circle(point.x,point.y, POINT_SIZE);
     });
     p5.push();
-    p5.stroke(...TRACER_COLOR);
-    p5.strokeWeight(2);
-    p5.noFill();
+    p5.fill(...TRACER_COLOR);
+    // p5.strokeWeight(2);
+    // p5.noFill();
     p5.translate(x,currentLine(x));
     p5.rotate(currentLine.angle-Math.PI/2);
     p5.triangle(-TRACER_SIZE/2, -TRACER_SIZE/2, TRACER_SIZE/2, -TRACER_SIZE/2, 0, TRACER_SIZE);

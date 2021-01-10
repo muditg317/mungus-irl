@@ -1,5 +1,9 @@
 import React, { useCallback } from 'react';
 
+// TODO: GALAGA
+// TODO: Good ship bad ship
+// TODO: birds and bugs
+// TODO: crossy road
 
 const Whiteboard = (props) => {
   const { finish, onExit } = props;
