@@ -13,7 +13,7 @@ const INTERACTION_BOUNDS = [-INTERACTION_MARGIN, BOARD_SIZE+INTERACTION_MARGIN];
 const INITIAL_SIZE = 15;
 const SIZE_INCR = 4;
 const MAX_SIZE = 120;
-const MIN_SIZE = 10;
+const MIN_SIZE = 8;
 const MAX_PERC_DIFF = 0.05;
 
 const MAX_ENEMIES = 15;
@@ -29,7 +29,7 @@ const PLAYER_COLOR = [229, 136, 247];
 const ENEMY_ANGLE_BELL = 2;
 const randomEnemySize = (playerSize) => {
   let min = MIN_SIZE < playerSize - 35 ? playerSize - 35 : MIN_SIZE;
-  let max = MAX_SIZE > playerSize + 100 ? playerSize + 100 : MAX_SIZE;
+  let max = MAX_SIZE > playerSize + 70 ? playerSize + 70 : MAX_SIZE;
   return (Math.random() < PROB_CAN_EAT ? Math.random() * (playerSize - min) : (Math.random() * (max - min) / 2 + Math.random() * (playerSize - min) / 2)) + min;
 };
 
@@ -79,7 +79,7 @@ const enemiesReducer = (state, action) => {
     }
     const angleToCenter = Math.atan2(BOARD_SIZE / 2 - newEnemy.y, BOARD_SIZE/2 - newEnemy.x);
     const currAngle = Math.atan2(newEnemy.vy, newEnemy.vx);
-    const newAngle = currAngle * 0.3 + angleToCenter * 0.7;
+    const newAngle = currAngle * 0.4 + angleToCenter * 0.6;
     newEnemy.vx = speed * Math.cos(newAngle);
     newEnemy.vy = speed * Math.sin(newAngle);
     return [...state, newEnemy];
