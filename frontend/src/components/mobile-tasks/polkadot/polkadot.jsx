@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import Sketch from 'polyfills/react-p5';
 
+import { useTaskFinish, useP5Event } from 'hooks';
 import { map } from 'utils';
 
 const SCORE_TO_WIN = 7;
 
 const BOARD_SIZE = 250;
 const INTERACTION_MARGIN = 10;
+const INTERACTION_BOUNDS = [-INTERACTION_MARGIN, BOARD_SIZE+INTERACTION_MARGIN];
 
 const INITIAL_SIZE = 15;
 const SIZE_INCR = 4;
@@ -106,13 +108,8 @@ const enemiesReducer = (state, action) => {
 
 const Polkadot = (props) => {
   const { finish, onExit } = props;
-  const completeTask = useCallback(() => {
-    // console.log('complete');
-    finish();
-    onExit(true);
-  }, [finish, onExit]);
+  const [ finished, finishTask ] = useTaskFinish(finish, onExit, 500);
 
-  const [ finished, setFinished ] = useState(false);
   const [ alive, setAlive ] = useState(true);
   const [ score, setScore ] = useState(0);
   const playerSize = useMemo(() => INITIAL_SIZE + score*SIZE_INCR, [score]);
@@ -135,7 +132,6 @@ const Polkadot = (props) => {
   }, []);
 
   const spawnEnemyIntervalRef = useRef();
-  const finishedTimeoutRef = useRef();
 
   const setup = useCallback((p5) => {
     p5.createCanvas(BOARD_SIZE, BOARD_SIZE);
@@ -167,10 +163,7 @@ const Polkadot = (props) => {
         setScore(prev => prev + 1);
         updateEnemies({removeKey: collided.key});
         if (score === SCORE_TO_WIN - 1) {
-          setFinished(true);
-          finishedTimeoutRef.current = setTimeout(() => {
-            completeTask();
-          }, 500);
+          finishTask();
         }
       } else {
         setAlive(false);
@@ -189,22 +182,15 @@ const Polkadot = (props) => {
     p5.textAlign(p5.CENTER, p5.CENTER);
     p5.text(score, x,y);
     p5.noStroke();
-  }, [score,finished,completeTask, enemies, x,y,playerSize]);
+  }, [score,finished,finishTask, enemies, x,y,playerSize]);
 
-  const mousePressed = useCallback((p5, event) => {
-    if (!(p5.mouseX <= BOARD_SIZE+INTERACTION_MARGIN && p5.mouseX >= -INTERACTION_MARGIN && p5.mouseY <= BOARD_SIZE+INTERACTION_MARGIN && p5.mouseY >= -INTERACTION_MARGIN)) {
-      return;
-    }
+  const mousePressed = useP5Event(useCallback((p5, event) => {
     if (!alive) {
       restart(p5);
     }
     setX(p5.mouseX);
     setY(p5.mouseY);
-    event.preventDefault();
-    event.stopPropagation();
-    event.returnValue = '';
-    return false;
-  }, [alive,restart, setX,setY]);
+  }, [alive,restart, setX,setY]), INTERACTION_BOUNDS);
   const touchStarted = mousePressed;
   const mouseDragged = mousePressed;
   const touchMoved = mouseDragged;
@@ -217,12 +203,6 @@ const Polkadot = (props) => {
       clearInterval(spawnEnemyIntervalRef.current);
     }
   }, [playerSize]);
-
-  useEffect(() => {
-    return () => {
-      clearTimeout(finishedTimeoutRef.current);
-    };
-  }, []);
 
   return (
     <>

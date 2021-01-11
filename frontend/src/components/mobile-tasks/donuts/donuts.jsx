@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import Sketch from 'polyfills/react-p5';
 
+import { useTaskFinish, useP5Event } from 'hooks';
 import { randInRange } from 'utils';
 
 const SCORE_TO_WIN = 5;
 
 const BOARD_SIZE = 250;
 const INTERACTION_MARGIN = 30;
+const INTERACTION_BOUNDS = [-INTERACTION_MARGIN, BOARD_SIZE+INTERACTION_MARGIN];
 
 const PLAYER_WIDTH = 5;
 const PLAYER_HEIGHT = 30;
@@ -91,13 +93,8 @@ const donutsReducer = (state, action) => {
 
 const Donuts = (props) => {
   const { finish, onExit } = props;
-  const completeTask = useCallback(() => {
-    // console.log('complete');
-    finish();
-    onExit(true);
-  }, [finish, onExit]);
+  const [ finished, finishTask ] = useTaskFinish(finish, onExit, 750);
 
-  const [ finished, setFinished ] = useState(false);
   const [ score, setScore ] = useState(0);
   const [ x, _setX ] = useState(BOARD_SIZE / 2);
   const setX = useCallback((newX) => {
@@ -107,7 +104,6 @@ const Donuts = (props) => {
   const [ donuts, updateDonuts ] = useReducer(donutsReducer, []);
 
   const spawnDonutIntervalRef = useRef();
-  const finishedTimeoutRef = useRef();
 
   const setup = useCallback((p5) => {
     p5.createCanvas(BOARD_SIZE, BOARD_SIZE, p5.WEBGL);
@@ -123,13 +119,10 @@ const Donuts = (props) => {
     setScore(newScore);
     // updateDonuts({ caught: caught.key });
     if (newScore === SCORE_TO_WIN) {
-      setFinished(true);
-      finishedTimeoutRef.current = setTimeout(() => {
-        completeTask();
-      }, 750);
+      finishTask();
     }
     // }
-  }, [x, donuts, completeTask]);
+  }, [x, donuts, finishTask]);
 
   const drawDonut = useCallback((p5, donut) => {
     p5.push();
@@ -173,16 +166,9 @@ const Donuts = (props) => {
     drawPlayer(p5);
   }, [finished, donuts, update, drawDonut, drawPlayer]);
 
-  const mousePressed = useCallback((p5, event) => {
-    if (!(p5.mouseX <= BOARD_SIZE+INTERACTION_MARGIN && p5.mouseX >= -INTERACTION_MARGIN && p5.mouseY <= BOARD_SIZE+INTERACTION_MARGIN && p5.mouseY >= -INTERACTION_MARGIN)) {
-      return;
-    }
+  const mousePressed = useP5Event(useCallback((p5, event) => {
     setX(p5.mouseX);
-    event.preventDefault();
-    event.stopPropagation();
-    event.returnValue = '';
-    return false;
-  }, [setX]);
+  }, [setX]), INTERACTION_BOUNDS);
   const touchStarted = mousePressed;
   const mouseDragged = mousePressed;
   const touchMoved = mouseDragged;
@@ -194,12 +180,6 @@ const Donuts = (props) => {
     return () => {
       clearInterval(spawnDonutIntervalRef.current);
     }
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      clearTimeout(finishedTimeoutRef.current);
-    };
   }, []);
 
   return (

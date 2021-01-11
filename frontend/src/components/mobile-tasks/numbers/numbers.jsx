@@ -1,15 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { useTaskFinish } from 'hooks';
 import { shuffled } from 'utils';
 
 const numbers = [1,2,3,4,5,6,7,8,9,10];
 
 const Numbers = (props) => {
   const { finish, onExit } = props;
-  const completeTask = useCallback(() => {
-    finish();
-    onExit(true);
-  }, [finish, onExit]);
+  const [ finished, finishTask ] = useTaskFinish(finish, onExit, 750);
 
   const [ order, ] = useState(shuffled(numbers));
   const firstHalf = useMemo(() => order.slice(0,5), [order]);
@@ -19,35 +17,26 @@ const Numbers = (props) => {
   const [ disabled, setDisabled ] = useState(false);
   const disabledTimeoutRef = useRef();
 
-  const [ finished, setFinished ] = useState(false);
-  const finishedTimeoutRef = useRef();
-
   const disableButtons = useCallback(() => {
     setDisabled(true);
     disabledTimeoutRef.current = setTimeout(() => setDisabled(false), 1000);
   }, []);
 
-  const finishButtons = useCallback(() => {
-    setFinished(true);
-    finishedTimeoutRef.current = setTimeout(() => completeTask(), 750);
-  }, [completeTask]);
-
   const clickNumber = useCallback((clickedNumber) => {
     if (clickedNumber === number) {
       setNumber(num => num + 1);
       if (clickedNumber === 10) {
-        finishButtons();
+        finishTask();
       }
     } else {
       setNumber(1);
       disableButtons();
     }
-  }, [number, finishButtons, disableButtons]);
+  }, [number, finishTask, disableButtons]);
 
   useEffect(() => {
     return () => {
       clearTimeout(disabledTimeoutRef.current);
-      clearTimeout(finishedTimeoutRef.current);
     }
   }, []);
 

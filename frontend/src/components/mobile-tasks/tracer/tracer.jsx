@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Sketch from 'polyfills/react-p5';
 
-import { useTaskFinish } from 'hooks';// TODO: add useP5event
-import { map, randInRange, P5tools } from 'utils';
+import { useTaskFinish, useP5Event } from 'hooks';
+import { map, randInRange, P5Tools } from 'utils';
 
 const BOARD_WIDTH = 250;
 const BOARD_HEIGHT = BOARD_WIDTH / 2;
 const INTERACTION_MARGIN = 10;
+const INTERACTION_BOUNDS = [-INTERACTION_MARGIN, BOARD_WIDTH+INTERACTION_MARGIN, -INTERACTION_MARGIN, BOARD_HEIGHT+INTERACTION_MARGIN];
 
 const TRACER_SIZE = 20;
 const POINT_SIZE = 17.5;
@@ -25,7 +26,7 @@ const STAR_POSITIONS = (() => {
   }
   return positions;
 })();
-const TRACER_COLOR = [153, 180, 232];//176, 196, 235|131, 164, 230
+const TRACER_COLOR = [153, 180, 232];
 const POINT_COLOR = [255, 247, 135];
 const REACHED_POINT_COLOR = [255, 242, 66];
 const PATH_COLOR = [209, 213, 222];
@@ -97,8 +98,7 @@ const Tracer = (props) => {
     p5.fill(...POINT_COLOR);
     p5.noStroke();
     STAR_POSITIONS.forEach(star => {
-      // console.log(star);
-      P5tools.star(p5, star.x, star.y, 2,3, Math.floor(map(Math.sin(p5.millis() / 50), -1,1, 5,7)));
+      P5Tools.star(p5, star.x, star.y, 2,4, Math.floor(map(Math.sin(p5.millis() / 50), -1,1, 5,7)));
     });
     p5.pop();
   }, []);
@@ -125,7 +125,7 @@ const Tracer = (props) => {
       }
       p5.fill(...(index < prog ? REACHED_POINT_COLOR : POINT_COLOR));
       // p5.circle(point.x,point.y, POINT_SIZE);
-      P5tools.star(p5, point.x,point.y, POINT_SIZE/3,POINT_SIZE/2, 5);
+      P5Tools.star(p5, point.x,point.y, POINT_SIZE/3,POINT_SIZE/2, 5);
     });
   }, []);
 
@@ -169,26 +169,16 @@ const Tracer = (props) => {
     p5.pop();
   }, [finished,finishTask, drawBackground,drawPath, pathPoints,progress, holding,x,currentLine,setX]);
 
-  const mousePressed = useCallback((p5, event) => {
-    if (!(p5.mouseX <= BOARD_WIDTH+INTERACTION_MARGIN && p5.mouseX >= -INTERACTION_MARGIN && p5.mouseY <= BOARD_HEIGHT+INTERACTION_MARGIN && p5.mouseY >= -INTERACTION_MARGIN)) {
-      return;
-    }
+  const mousePressed = useP5Event(useCallback((p5, event) => {
     if (!holding) {
       if (Math.abs(p5.mouseX - x) < MAX_TRACING_ERROR/2 && Math.abs(p5.mouseY - currentLine(x)) < MAX_TRACING_ERROR/2) {
         setHolding(true);
       }
     }
-    event.preventDefault();
-    event.stopPropagation();
-    event.returnValue = '';
-    return false;
-  }, [holding, x, currentLine]);
+  }, [holding, x, currentLine]), INTERACTION_BOUNDS);
   const touchStarted = mousePressed;
 
-  const mouseDragged = useCallback((p5, event) => {
-    if (!(p5.mouseX <= BOARD_WIDTH+INTERACTION_MARGIN && p5.mouseX >= -INTERACTION_MARGIN && p5.mouseY <= BOARD_HEIGHT+INTERACTION_MARGIN && p5.mouseY >= -INTERACTION_MARGIN)) {
-      return;
-    }
+  const mouseDragged = useP5Event(useCallback((p5, event) => {
     if (holding) {
       if (Math.abs(p5.mouseX - x) < MAX_TRACING_ERROR && Math.abs(p5.mouseY - currentLine(x)) < MAX_TRACING_ERROR) {
         setX(p5.mouseX);
@@ -196,23 +186,12 @@ const Tracer = (props) => {
         setHolding(false);
       }
     }
-    event.preventDefault();
-    event.stopPropagation();
-    event.returnValue = '';
-    return false;
-  }, [holding, x,setX, currentLine]);
+  }, [holding, x,setX, currentLine]), INTERACTION_BOUNDS);
   const touchMoved = mouseDragged;
 
-  const mouseReleased = useCallback((p5, event) => {
-    if (!(p5.mouseX <= BOARD_WIDTH+INTERACTION_MARGIN && p5.mouseX >= -INTERACTION_MARGIN && p5.mouseY <= BOARD_HEIGHT+INTERACTION_MARGIN && p5.mouseY >= -INTERACTION_MARGIN)) {
-      return;
-    }
+  const mouseReleased = useP5Event(useCallback((p5, event) => {
     setHolding(false);
-    event.preventDefault();
-    event.stopPropagation();
-    event.returnValue = '';
-    return false;
-  }, []);
+  }, []), INTERACTION_BOUNDS);
   const touchEnded = mouseReleased;
 
   return (

@@ -1,4 +1,6 @@
-import React, { useCallback } from 'react';
+import React, {  } from 'react';
+
+import { useTaskFinish } from 'hooks';
 
 // TODO: GALAGA
 // TODO: Good ship bad ship
@@ -7,16 +9,13 @@ import React, { useCallback } from 'react';
 
 const Whiteboard = (props) => {
   const { finish, onExit } = props;
-  const completeTask = useCallback(() => {
-    finish();
-    onExit(true);
-  }, [finish, onExit]);
+  const [ , finishTask ] = useTaskFinish(finish, onExit);
 
 
 
   return (
     <>
-      <button onClick={completeTask}>finish</button>
+      <button onClick={finishTask}>finish</button>
     </>
   );
 };
