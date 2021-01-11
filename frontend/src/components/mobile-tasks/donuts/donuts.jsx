@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import React, { useCallback, useReducer, useState } from 'react';
 import Sketch from 'polyfills/react-p5';
 
-import { useTaskFinish, useP5Event } from 'hooks';
+import { useTaskFinish, useP5Event, useInterval } from 'hooks';
 import { randInRange } from 'utils';
 
 const SCORE_TO_WIN = 5;
@@ -11,7 +11,7 @@ const INTERACTION_MARGIN = 30;
 const INTERACTION_BOUNDS = [-INTERACTION_MARGIN, BOARD_SIZE+INTERACTION_MARGIN];
 
 const PLAYER_WIDTH = 5;
-const PLAYER_HEIGHT = 30;
+const PLAYER_HEIGHT = 40;
 
 const MAX_DONUTS = 3;
 const DONUT_SPAWN_RATE = 1.5;
@@ -70,7 +70,7 @@ const donutsReducer = (state, action) => {
     return state.filter(donut => {
       const time = performance.now();
       const deltaT = (time - donut.prevUpdate) * 60/1000;
-      !donut.bount && Math.abs(donut.x - playerX) <= (DONUT_DIAM - DONUT_THICK - PLAYER_WIDTH) && Math.abs(donut.y - (BOARD_SIZE - PLAYER_HEIGHT*16/9)) < DONUT_THICK && (donut.bound = true);
+      !donut.bound && Math.abs(donut.x - playerX) <= (DONUT_DIAM - DONUT_THICK - PLAYER_WIDTH) && Math.abs(donut.y - (BOARD_SIZE - PLAYER_HEIGHT*16/9)) < DONUT_THICK && (donut.bound = true);
       donut.bound && (donut.x = playerX);
       if (donut.bound && Math.abs(donut.y - (BOARD_SIZE - PLAYER_HEIGHT/2 - DONUT_THICK*1*(score))) < DONUT_THICK/2) {
         donut.caught = true;
@@ -102,8 +102,6 @@ const Donuts = (props) => {
   }, [finished]);
 
   const [ donuts, updateDonuts ] = useReducer(donutsReducer, []);
-
-  const spawnDonutIntervalRef = useRef();
 
   const setup = useCallback((p5) => {
     p5.createCanvas(BOARD_SIZE, BOARD_SIZE, p5.WEBGL);
@@ -173,14 +171,9 @@ const Donuts = (props) => {
   const mouseDragged = mousePressed;
   const touchMoved = mouseDragged;
 
-  useEffect(() => {
-    spawnDonutIntervalRef.current = setInterval(() => {
-      updateDonuts({spawnDonut: true});
-    }, 1000 / DONUT_SPAWN_RATE);
-    return () => {
-      clearInterval(spawnDonutIntervalRef.current);
-    }
-  }, []);
+  useInterval(useCallback(() => {
+    updateDonuts({spawnDonut: true});
+  }, []), 1000 / DONUT_SPAWN_RATE);
 
   return (
     <>

@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useReducer, useState } from 'react';
 import Sketch from 'polyfills/react-p5';
 
-import { useTaskFinish, useP5Event } from 'hooks';
+import { useTaskFinish, useP5Event, useInterval } from 'hooks';
 import { map } from 'utils';
 
 const SCORE_TO_WIN = 7;
@@ -131,8 +131,6 @@ const Polkadot = (props) => {
     p5.loop();
   }, []);
 
-  const spawnEnemyIntervalRef = useRef();
-
   const setup = useCallback((p5) => {
     p5.createCanvas(BOARD_SIZE, BOARD_SIZE);
     p5.noStroke();
@@ -195,14 +193,9 @@ const Polkadot = (props) => {
   const mouseDragged = mousePressed;
   const touchMoved = mouseDragged;
 
-  useEffect(() => {
-    spawnEnemyIntervalRef.current = setInterval(() => {
-      updateEnemies({spawnEnemy: { playerSize }});
-    }, 1000 / ENEMY_SPAWN_RATE);
-    return () => {
-      clearInterval(spawnEnemyIntervalRef.current);
-    }
-  }, [playerSize]);
+  useInterval(useCallback(() => {
+    updateEnemies({spawnEnemy: { playerSize }});
+  }, [playerSize]), 1000 / ENEMY_SPAWN_RATE);
 
   return (
     <>

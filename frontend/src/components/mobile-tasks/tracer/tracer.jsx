@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import Sketch from 'polyfills/react-p5';
 
 import { useTaskFinish, useP5Event } from 'hooks';
@@ -49,11 +49,6 @@ const generateRandomPath = () => {
 const Tracer = (props) => {
   const { finish, onExit } = props;
   const [ finished, finishTask ] = useTaskFinish(finish, onExit, 750);
-  const completeTask = useCallback(() => {
-    // console.log('complete');
-    finish();
-    onExit(true);
-  }, [finish, onExit]);
 
   const [ pathPoints, ] = useState(generateRandomPath);
   const [ progress, setProgress ] = useState(1); // which point are you on
