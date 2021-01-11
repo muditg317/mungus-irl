@@ -28,6 +28,7 @@ export const pullTaskManagerDataAction = dispatch => (clearErrors = false) => {
     .get(`/api/tasks/info`)
     .then(response => {
       response.data.userTasks.forEach(task => (task.saved = true));
+      // response.data.userTasks.sort((t1, t2) => t1.taskname.localeCompare(t2.taskname));
       // console.log(response);
       dispatch({
         type: SET_TASK_MANAGER_DATA,

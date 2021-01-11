@@ -11,6 +11,7 @@ const validateTaskInput = require('../validation/task');
 const taskPayload = task => ({
   id: task.id,
   taskname: task.taskname,
+  longName: task.longName,
   enabled: task.enabled || false,
   // owner: task.owner,
   qrID: task.qrID,
@@ -24,6 +25,7 @@ const taskPayload = task => ({
 
 const extractSettings = task => ({
   taskname: task.taskname,
+  longName: task.longName,
   maxTime: task.maxTime,
   format: task.format,
   predecessorTasks: (task.predecessorTasks ? task.predecessorTasks.map(predTask => predTask.taskname) : []),
@@ -33,6 +35,7 @@ const extractSettings = task => ({
 
 const applySettings = (target, settings) => {
   target.taskname = settings.taskname,
+  target.longName = settings.longName,
   target.maxTime = settings.maxTime,
   target.format = settings.format,
   target.predecessorTasks = (settings.predecessorTasks ? settings.predecessorTasks.map(predTask => predTask.taskname) : []),
@@ -52,7 +55,7 @@ module.exports = {
       if (!user || user.username !== tokenUsername) {
         return response.status(403).json({ authorization: `Invalid auth token` });
       }
-      const userTasks = await Task.findByOwner(user.id).maxTime(MONGOOSE_READ_TIMEOUT);
+      const userTasks = await Task.findByOwner(user.id).sort({createdAt:1}).maxTime(MONGOOSE_READ_TIMEOUT);
       userTasks.forEach(task => {
         if (user.tasks.includes(task.id)) {
           task.enabled = true;
@@ -146,7 +149,7 @@ module.exports = {
 
       // console.log("user task data", userTaskData);
 
-      const oldTasks = await Task.findByOwner(user.id).maxTime(MONGOOSE_READ_TIMEOUT);
+      const oldTasks = await Task.findByOwner(user.id).sort({createdAt:1}).maxTime(MONGOOSE_READ_TIMEOUT);
       // if (tasks.length) {
       //   return response.status(400).json({ qrID: `qrID already exists` });
       // }
