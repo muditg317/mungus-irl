@@ -4,11 +4,11 @@ import Polkadot, { polkadotInfo } from './polkadot';
 import Donuts, { donutsInfo } from './donuts';
 import Tracer, { tracerInfo } from './tracer';
 import GoodShipBadShip, { goodShipBadShipInfo } from './goodShipBadShip';
+import RoadCross, { roadCrossInfo } from './roadCross';
 
 // TODO: add more mobile tasks
 //          oo maybe just do wiring1, wiring2, wiring3 type thing (silly but eh)
 // TODO: GALAGA
-// TODO: Good ship bad ship
 // TODO: birds and bugs
 // TODO: crossy road
 
@@ -20,6 +20,7 @@ const availableMobileTasks = {
   donuts: donutsInfo,
   tracer: tracerInfo,
   goodShipBadShip: goodShipBadShipInfo,
+  // roadCross: roadCrossInfo,
 };
 export default availableMobileTasks;
 export { availableMobileTasks };
@@ -31,3 +32,4 @@ export { Polkadot, polkadotInfo };
 export { Donuts, donutsInfo };
 export { Tracer, tracerInfo };
 export { GoodShipBadShip, goodShipBadShipInfo };
+export { RoadCross, roadCrossInfo };
