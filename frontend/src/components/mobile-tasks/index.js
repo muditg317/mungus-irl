@@ -1,4 +1,4 @@
-import Whiteboard, { whiteboardInfo } from './whiteboard';
+import Doodle, { doodleInfo } from './doodle';
 import Numbers, { numbersInfo } from './numbers';
 import Polkadot, { polkadotInfo } from './polkadot';
 import Donuts, { donutsInfo } from './donuts';
@@ -14,7 +14,7 @@ import GoodShipBadShip, { goodShipBadShipInfo } from './goodShipBadShip';
 
 
 const availableMobileTasks = {
-  whiteboard: whiteboardInfo,
+  doodle: doodleInfo,
   numbers: numbersInfo,
   polkadot: polkadotInfo,
   donuts: donutsInfo,
@@ -25,7 +25,7 @@ export default availableMobileTasks;
 export { availableMobileTasks };
 export { availableMobileTasks as mobileTasks };
 
-export { Whiteboard, whiteboardInfo };
+export { Doodle, doodleInfo };
 export { Numbers, numbersInfo };
 export { Polkadot, polkadotInfo };
 export { Donuts, donutsInfo };

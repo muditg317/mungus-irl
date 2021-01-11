@@ -1,8 +1,8 @@
-import Whiteboard from './whiteboard';
+import Doodle from './doodle';
 
-const whiteboardInfo = {
+const doodleInfo = {
   id: "5fd2dc031db8716250919d6a",
-  taskname: "whiteboard",
+  taskname: "doodle",
   longName: "Doodle",
   qrID: "yKozQGi",
   maxTime: 20,
@@ -11,8 +11,8 @@ const whiteboardInfo = {
   predecessorTasks: [],
   successorTasks: [],
   canBeNonVisual: true,
-  component: Whiteboard
+  component: Doodle
 }
 
-export default Whiteboard;
-export { whiteboardInfo };
+export default Doodle;
+export { doodleInfo };

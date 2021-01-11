@@ -28,7 +28,7 @@ const OPTIONS = [
 ];
 
 
-const Whiteboard = (props) => {
+const Doodle = (props) => {
   const { finish, onExit } = props;
   const [ finished, finishTask ] = useTaskFinish(finish, onExit, 500);
 
@@ -56,4 +56,4 @@ const Whiteboard = (props) => {
   );
 };
 
-export default Whiteboard;
+export default Doodle;
