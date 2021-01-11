@@ -86,7 +86,7 @@ const MobileTaskDescription = ({ experimental=false, task, selected, selectTask,
     <div className="w-full py-2 first:pt-0 last:pb-0 flex flex-row items-center justify-between">
       <div className="h-full flex flex-row items-center">
         <div className="w-full flex flex-row flex-wrap items-center justify-start">
-          <p className="bg-transparent w-fit text-lg font-bold">{`${task.taskname || ''}`}</p>
+          <p className="bg-transparent w-fit text-lg font-bold">{`${task.longName || task.taskname || ''}`}</p>
           <p className="bg-transparent w-fit text-lg ml-1">{`${(task.format && `(${task.format})`) || ''}`}</p>
           { experimental && <p className="bg-transparent w-fit text-lg ml-1">{`Experimental!`}</p>
             // <label className="mr-1">ID:</label>

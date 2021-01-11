@@ -7,6 +7,11 @@ const taskSchema = new Schema({
     type: String,
     required: true
   },
+  longName: {
+    type: String,
+    required: false,
+    default: ''
+  },
   owner: {
     type: Schema.Types.ObjectID,
     ref: 'User',
