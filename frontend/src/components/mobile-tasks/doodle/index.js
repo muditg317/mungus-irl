@@ -7,7 +7,7 @@ const doodleInfo = {
   qrID: "yKozQGi",
   maxTime: 20,
   physicalDeviceID: '',
-  format: 'short',
+  format: 'long',
   predecessorTasks: [],
   successorTasks: [],
   canBeNonVisual: true,

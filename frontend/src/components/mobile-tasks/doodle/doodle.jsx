@@ -4,8 +4,8 @@ import Sketch from 'polyfills/react-p5';
 import { useTaskFinish, useP5Event, useNonResettingTimeout } from 'hooks';
 import { randOption, randInRange } from 'utils';
 
-const TIME_TO_FINISH = 7;
-const TIME_MARGIN = 1;
+const MIN_TIME_TO_FINISH = 6;
+const MAX_TIME_TO_FINISH = 9;
 
 const BOARD_SIZE = 250;
 const INTERACTION_MARGIN = 0;
@@ -33,7 +33,7 @@ const Doodle = (props) => {
   const [ finished, finishTask ] = useTaskFinish(finish, onExit, 500);
 
   const [ goalDrawing, ] = useState(() => randOption(OPTIONS));
-  const [ timeToFinish, ] = useState(() => 1000*randInRange(TIME_TO_FINISH-TIME_MARGIN,TIME_TO_FINISH+TIME_MARGIN));
+  const [ timeToFinish, ] = useState(() => 1000*randInRange(MIN_TIME_TO_FINISH,MAX_TIME_TO_FINISH));
 
   const setup = useCallback((p5) => {
     p5.createCanvas(BOARD_SIZE, BOARD_SIZE);
