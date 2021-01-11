@@ -22,7 +22,6 @@ const PROB_CAN_EAT = 0.4;
 const MIN_SPEED = 0.25;
 const MAX_SPEED = 1.75;
 
-const SCALE = 1;
 const BACKGROUND_COLOR = [180, 242, 114];
 const PLAYER_COLOR = [229, 136, 247];
 
@@ -155,7 +154,7 @@ const Polkadot = (props) => {
       return;
     }
     updateEnemies({stepAll: true});
-    const collided = enemies.find(enemy => Math.hypot(enemy.x - x,enemy.y - y) < ((enemy.size + playerSize) * SCALE / 2));
+    const collided = enemies.find(enemy => Math.hypot(enemy.x - x,enemy.y - y) < ((enemy.size + playerSize) / 2));
     if (collided) {
       if (collided.size / playerSize <= (1 + MAX_PERC_DIFF)) {
         setScore(prev => prev + 1);

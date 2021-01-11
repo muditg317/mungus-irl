@@ -1,137 +1,193 @@
-import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import React, { useCallback, useReducer, useState } from 'react';
 import Sketch from 'polyfills/react-p5';
 
-import { useTaskFinish, useP5Event } from 'hooks';
-import { map } from 'utils';
+import { useTaskFinish, useP5Event, useInterval } from 'hooks';
+import { map, randInRange } from 'utils';
 
-const SCORE_TO_WIN = 7;
+const SCORE_TO_WIN = 10;
 
 const BOARD_SIZE = 250;
 const INTERACTION_MARGIN = 10;
 const INTERACTION_BOUNDS = [-INTERACTION_MARGIN, BOARD_SIZE+INTERACTION_MARGIN];
 
-const INITIAL_SIZE = 15;
-const SIZE_INCR = 4;
-const MAX_SIZE = 120;
-const MIN_SIZE = 10;
-const MAX_PERC_DIFF = 0.05;
+const MAX_SIZE = 0;
+const MIN_SIZE = 2;
+const HIT_MARGIN = 5;
 
-const MAX_ENEMIES = 15;
-const ENEMY_SPAWN_RATE = 2.5;
-const PROB_CAN_EAT = 0.4;
-const MIN_SPEED = 0.25;
+const MAX_SHIPS = 20;
+const SHIP_SPAWN_RATE = 3;
+const ENEMY_PROBABILITY = 0.4;
+const MIN_SPEED = 0.75;
 const MAX_SPEED = 1.75;
 
-const SCALE = 1;
-const BACKGROUND_COLOR = [180, 242, 114];
-const PLAYER_COLOR = [229, 136, 247];
+const BACKGROUND_COLOR = [65, 145, 242];
+// const PLAYER_COLOR = [229, 136, 247];
+const FRIEND_COLOR = [181, 181, 181];
+const ENEMY_COLOR = [120, 11, 11];
 
-const ENEMY_ANGLE_BELL = 2;
-const randomEnemySize = (playerSize) => {
-  let min = MIN_SIZE < playerSize - 35 ? playerSize - 35 : MIN_SIZE;
-  let max = MAX_SIZE > playerSize + 100 ? playerSize + 100 : MAX_SIZE;
-  return (Math.random() < PROB_CAN_EAT ? Math.random() * (playerSize - min) : (Math.random() * (max - min) / 2 + Math.random() * (playerSize - min) / 2)) + min;
+const SHIP_ANGLE_BELL = 2;
+const SHIP_UNIT_SIZE = 20;
+
+const drawShip = (p5, ship) => {
+  p5.push();
+  p5.noStroke();
+  p5.fill(...ship.color);
+  p5.translate(ship.x,ship.y);
+  p5.rotate(Math.atan2(ship.vy, ship.vx));
+  p5.rectMode(p5.CENTER);
+  p5.rect(0,0, ship.size * SHIP_UNIT_SIZE, SHIP_UNIT_SIZE);
+  p5.translate(ship.size * SHIP_UNIT_SIZE / 2, 0);
+  p5.ellipse(0,0, SHIP_UNIT_SIZE*2,SHIP_UNIT_SIZE);
+  p5.translate(-ship.size * SHIP_UNIT_SIZE, 0);
+  p5.ellipse(0,0, SHIP_UNIT_SIZE*2,SHIP_UNIT_SIZE);
+  p5.pop();
 };
 
-const enemiesReducer = (state, action) => {
-  const { spawnEnemy, updateID, newData, removeKey, reset, stepAll } = action;
+const shipsReducer = (state, action) => {
+  const { spawnShip, randomShip, updateID, newData, removeKey, reset, stepAll } = action;
   if (reset) {
     return reset;
   }
-  if (spawnEnemy) {
-    if (state.length >= MAX_ENEMIES) {
+  if (spawnShip) {
+    if (state.length >= MAX_SHIPS) {
       return state;
     }
-    const newEnemy = {
+    const newShip = {
       key: Math.random().toString().substring(2),
-      size: randomEnemySize(spawnEnemy.playerSize),
+      size: randInRange(MIN_SIZE,MAX_SIZE),
       x: Math.random() * BOARD_SIZE,
       y: Math.random() * BOARD_SIZE,
-      color: [Math.random() * 255, Math.random() * 255, Math.random() * 255]
+      isEnemy: spawnShip.isEnemy !== undefined ? spawnShip.isEnemy : Math.random() < ENEMY_PROBABILITY
     };
-    let speed = map(newEnemy.size, MIN_SIZE, MAX_SIZE, MAX_SPEED, MIN_SPEED) * (1 + (Math.random() * 0.4 - 0.2));
+    newShip.color = newShip.isEnemy ? ENEMY_COLOR : FRIEND_COLOR;
+    let speed = map(newShip.size, MIN_SIZE, MAX_SIZE, MIN_SPEED, MAX_SPEED) * (1 + (Math.random() * 0.4 - 0.2));
+    // let speed = map(newShip.size, MIN_SIZE, MAX_SIZE, MAX_SPEED, MIN_SPEED) * (1 + (Math.random() * 0.4 - 0.2));
     let angle = 0;
-    for (let i = 0; i < ENEMY_ANGLE_BELL; i++) {
-      angle += (Math.random() * Math.PI / 2) / ENEMY_ANGLE_BELL;
+    for (let i = 0; i < SHIP_ANGLE_BELL; i++) {
+      angle += (Math.random() * Math.PI / 2) / SHIP_ANGLE_BELL;
     }
-    newEnemy.vx = speed * Math.cos(angle);
-    newEnemy.vy = speed * Math.sin(angle);
+    newShip.vx = speed * Math.cos(angle);
+    newShip.vy = speed * Math.sin(angle);
     if (Math.random() < 0.5) {
       if (Math.random() < 0.5) {
-        newEnemy.x = -newEnemy.size/2;
+        newShip.x = -newShip.size*SHIP_UNIT_SIZE;
       } else {
-        newEnemy.x = BOARD_SIZE + newEnemy.size/2;
-        newEnemy.vx *= -1;
+        newShip.x = BOARD_SIZE + newShip.size*SHIP_UNIT_SIZE;
+        newShip.vx *= -1;
       }
-      if (Math.sign(BOARD_SIZE/2 - newEnemy.y) === Math.sign(newEnemy.vy) && Math.random() < 0.25) {
-        newEnemy.vy *= -1;
+      if (Math.sign(BOARD_SIZE/2 - newShip.y) === Math.sign(newShip.vy) && Math.random() < 0.25) {
+        newShip.vy *= -1;
       }
     } else {
       if (Math.random() < 0.5) {
-        newEnemy.y = -newEnemy.size/2;
+        newShip.y = -newShip.size*SHIP_UNIT_SIZE;
       } else {
-        newEnemy.y = BOARD_SIZE + newEnemy.size/2;
-        newEnemy.vy *= -1;
+        newShip.y = BOARD_SIZE + newShip.size*SHIP_UNIT_SIZE;
+        newShip.vy *= -1;
       }
-      if (Math.sign(BOARD_SIZE/2 - newEnemy.x) === Math.sign(newEnemy.vx) && Math.random() < 0.25) {
-        newEnemy.vx *= -1;
+      if (Math.sign(BOARD_SIZE/2 - newShip.x) === Math.sign(newShip.vx) && Math.random() < 0.25) {
+        newShip.vx *= -1;
       }
     }
-    const angleToCenter = Math.atan2(BOARD_SIZE / 2 - newEnemy.y, BOARD_SIZE/2 - newEnemy.x);
-    const currAngle = Math.atan2(newEnemy.vy, newEnemy.vx);
+    const angleToCenter = Math.atan2(BOARD_SIZE / 2 - newShip.y, BOARD_SIZE/2 - newShip.x);
+    const currAngle = Math.atan2(newShip.vy, newShip.vx);
     const newAngle = currAngle * 0.3 + angleToCenter * 0.7;
-    newEnemy.vx = speed * Math.cos(newAngle);
-    newEnemy.vy = speed * Math.sin(newAngle);
-    return [...state, newEnemy];
+    newShip.vx = speed * Math.cos(newAngle);
+    newShip.vy = speed * Math.sin(newAngle);
+    return [...state, newShip];
+  }
+  if (randomShip) {
+    const newShip = {
+      key: Math.random().toString().substring(2),
+      size: randInRange(MIN_SIZE,MAX_SIZE),
+      x: Math.random() * BOARD_SIZE,
+      y: Math.random() * BOARD_SIZE,
+      isEnemy: Math.random() < ENEMY_PROBABILITY
+    };
+    newShip.color = newShip.isEnemy ? ENEMY_COLOR : FRIEND_COLOR;
+    let speed = map(newShip.size, MIN_SIZE, MAX_SIZE, MIN_SPEED, MAX_SPEED) * (1 + (Math.random() * 0.4 - 0.2));
+    let angle = 0;
+    for (let i = 0; i < 1; i++) {
+      angle += (Math.random() * Math.PI / 2) / 1;
+    }
+    newShip.vx = speed * Math.cos(angle);
+    newShip.vy = speed * Math.sin(angle);
+    // const angleToCenter = Math.atan2(BOARD_SIZE / 2 - newShip.y, BOARD_SIZE/2 - newShip.x);
+    // const currAngle = Math.atan2(newShip.vy, newShip.vx);
+    // const newAngle = currAngle * 0.3 + angleToCenter * 0.7;
+    // newShip.vx = speed * Math.cos(newAngle);
+    // newShip.vy = speed * Math.sin(newAngle);
+    return [...state, newShip];
   }
   if (updateID) {
-    return state.map(enemy => enemy.key !== updateID ? enemy : { ...enemy, ...newData });
+    return state.map(ship => ship.key !== updateID ? ship : { ...ship, ...newData });
   }
   if (removeKey) {
-    return state.filter(enemy => enemy.key !== removeKey);
+    return state.filter(ship => ship.key !== removeKey);
   }
   if (stepAll) {
-    return state.filter(enemy => {
-      enemy.x += enemy.vx;
-      enemy.y += enemy.vy;
-      if (enemy.x < -enemy.size/2 || enemy.x > (BOARD_SIZE + enemy.size/2)
-          || enemy.y < -enemy.size/2 || enemy.y > (BOARD_SIZE + enemy.size/2)) {
+    return state.filter(ship => {
+      ship.x += ship.vx;
+      ship.y += ship.vy;
+      if (ship.x < -ship.size*SHIP_UNIT_SIZE || ship.x > (BOARD_SIZE + ship.size*SHIP_UNIT_SIZE)
+          || ship.y < -ship.size*SHIP_UNIT_SIZE || ship.y > (BOARD_SIZE + ship.size*SHIP_UNIT_SIZE)) {
         return false;
       }
       return true;
     });
   }
-  console.log('unkown enemies update', state, action);
+  console.log('unkown ships update', state, action);
+  return state;
+};
+
+const textsReducer = (state, action) => {
+  const { newText, reset, stepAll } = action;
+  if (reset) {
+    return reset;
+  }
+  if (newText) {
+    newText.vy = -0.5;
+    newText.opacity = 255;
+    return [...state, newText];
+  }
+  if (stepAll) {
+    return state.filter(text => {
+      text.y += text.vy;
+      text.opacity *= 0.9;
+      return text.opacity >= 10;
+    });
+  }
+  console.log('unkown text update', state, action);
   return state;
 };
 
 
 const GoodShipBadShip = (props) => {
   const { finish, onExit } = props;
-  const [ finished, finishTask ] = useTaskFinish(finish, onExit, 500);
+  const [ finished, finishTask ] = useTaskFinish(finish, onExit, 750);
 
-  const [ alive, setAlive ] = useState(true);
   const [ score, setScore ] = useState(0);
-  const playerSize = useMemo(() => INITIAL_SIZE + score*SIZE_INCR, [score]);
-  const [ x, _setX ] = useState(BOARD_SIZE / 2);
-  const [ y, _setY ] = useState(BOARD_SIZE / 2);
-  const setX = useCallback((newX) => {
-    finished ? _setX(newX) : _setX(Math.min(Math.max(newX, playerSize), BOARD_SIZE - playerSize));
-  }, [finished, playerSize]);
-  const setY = useCallback((newY) => {
-    finished ? _setY(newY) : _setY(Math.min(Math.max(newY, playerSize), BOARD_SIZE - playerSize));
-  }, [finished, playerSize]);
+  // const setScore = useCallback((newScore) => {
+  //   finished ? _setScore(newScore) : _setScore(Math.max(newScore, 0));
+  // }, []);
+  // const [ x, _setX ] = useState(BOARD_SIZE / 2);
+  // const [ y, _setY ] = useState(BOARD_SIZE / 2);
+  // const setX = useCallback((newX) => {
+  //   finished ? _setX(newX) : _setX(Math.min(Math.max(newX, playerSize), BOARD_SIZE - playerSize));
+  // }, [finished, playerSize]);
+  // const setY = useCallback((newY) => {
+  //   finished ? _setY(newY) : _setY(Math.min(Math.max(newY, playerSize), BOARD_SIZE - playerSize));
+  // }, [finished, playerSize]);
 
-  const [ enemies, updateEnemies ] = useReducer(enemiesReducer, []);
+  const [ ships, updateShips ] = useReducer(shipsReducer, []);
+  const [ texts, updateTexts ] = useReducer(textsReducer, []);
 
-  const restart = useCallback((p5) => {
-    setAlive(true);
-    setScore(0);
-    updateEnemies({reset: []});
-    p5.loop();
-  }, []);
-
-  const spawnEnemyIntervalRef = useRef();
+  // const restart = useCallback((p5) => {
+  //   setAlive(true);
+  //   setScore(0);
+  //   updateShips({reset: []});
+  //   p5.loop();
+  // }, []);
 
   const setup = useCallback((p5) => {
     p5.createCanvas(BOARD_SIZE, BOARD_SIZE);
@@ -141,72 +197,103 @@ const GoodShipBadShip = (props) => {
 
   const draw = useCallback((p5) => {
     if (finished) {
-      setScore(prev => prev * 1.2);
+      // setScore(prev => prev * 1.2);
+      updateShips({ randomShip: true });
+      updateShips({ randomShip: true });
+      updateShips({ randomShip: true });
+      updateShips({ randomShip: true });
+      updateShips({ randomShip: true });
+      updateShips({ randomShip: true });
       p5.background(...BACKGROUND_COLOR);
-      enemies.forEach(enemy => {
-        p5.fill(...enemy.color);
-        p5.circle(enemy.x,enemy.y, enemy.size);
+      ships.forEach(ship => {
+        drawShip(p5, ship);
       });
-      p5.fill(...PLAYER_COLOR);
-      p5.circle(x,y, playerSize);
+      // p5.fill(...PLAYER_COLOR);
+      // p5.circle(x,y, playerSize);
 
-      p5.stroke(0);
-      p5.textAlign(p5.CENTER, p5.CENTER);
-      p5.text("WIN", x,y);
-      p5.noStroke();
+      // p5.stroke(0);
+      // p5.textAlign(p5.CENTER, p5.CENTER);
+      // p5.text("WIN", x,y);
+      // p5.noStroke();
       return;
     }
-    updateEnemies({stepAll: true});
-    const collided = enemies.find(enemy => Math.hypot(enemy.x - x,enemy.y - y) < ((enemy.size + playerSize) * SCALE / 2));
-    if (collided) {
-      if (collided.size / playerSize <= (1 + MAX_PERC_DIFF)) {
-        setScore(prev => prev + 1);
-        updateEnemies({removeKey: collided.key});
-        if (score === SCORE_TO_WIN - 1) {
-          finishTask();
-        }
-      } else {
-        setAlive(false);
-        p5.noLoop();
-      }
-    }
+    updateShips({stepAll: true});
+    updateTexts({stepAll: true});
+    // const collided = ships.find(ship => Math.hypot(ship.x - x,ship.y - y) < ((ship.size + playerSize) * SCALE / 2));
+    // if (collided) {
+    //   if (collided.size / playerSize <= (1 + MAX_PERC_DIFF)) {
+    //     setScore(prev => prev + 1);
+    //     updateShips({removeKey: collided.key});
+    //     if (score === SCORE_TO_WIN - 1) {
+    //       finishTask();
+    //     }
+    //   } else {
+    //     setAlive(false);
+    //     p5.noLoop();
+    //   }
+    // }
     p5.background(...BACKGROUND_COLOR);
-    enemies.forEach(enemy => {
-      p5.fill(...enemy.color);
-      p5.circle(enemy.x,enemy.y, enemy.size);
+    ships.forEach(ship => {
+      drawShip(p5, ship);
     });
-    p5.fill(...PLAYER_COLOR);
-    p5.circle(x,y, playerSize);
-
-    p5.stroke(0);
-    p5.textAlign(p5.CENTER, p5.CENTER);
-    p5.text(score, x,y);
-    p5.noStroke();
-  }, [score,finished,finishTask, enemies, x,y,playerSize]);
+    texts.forEach(text => {
+      p5.push();
+      p5.stroke(...text.color, text.opacity);
+      p5.fill(...text.color, text.opacity);
+      p5.textAlign(p5.CENTER, p5.CENTER);
+      p5.text(text.text, text.x, text.y);
+      p5.pop();
+    });
+  }, [finished, ships,texts]);
 
   const mousePressed = useP5Event(useCallback((p5, event) => {
-    if (!alive) {
-      restart(p5);
+    const hitShips = ships.filter(ship => {
+      const angle = Math.atan2(ship.vy, ship.vx);
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const translatedX = p5.mouseX - ship.x;
+      const translatedY = p5.mouseY - ship.y;
+      const transformedX = translatedX * cos - translatedY * sin;
+      const transformedY = translatedX * sin + translatedY * cos;
+      return Math.abs(transformedX) <= ((ship.size+2) * SHIP_UNIT_SIZE / 2 + HIT_MARGIN) && Math.abs(transformedY) < (SHIP_UNIT_SIZE / 2 + HIT_MARGIN);
+    });
+    let scoreChange = 0;
+    hitShips.forEach(hitShip => {
+      if (hitShip.isEnemy) {
+        scoreChange += 1;
+        updateTexts({ newText: {
+          text: "HIT! +1",
+          x: hitShip.x,
+          y: hitShip.y,
+          color: [0,255,0]
+        }});
+      } else {
+        scoreChange -= 2;
+        updateTexts({ newText: {
+          text: "OUCH! -2",
+          x: hitShip.x,
+          y: hitShip.y,
+          color: [255,0,0]
+        }});
+      }
+      updateShips({ removeKey: hitShip.key });
+    });
+    scoreChange && setScore(curr => Math.max(curr + scoreChange, 0));
+    if (score + scoreChange === SCORE_TO_WIN) {
+      finishTask();
     }
-    setX(p5.mouseX);
-    setY(p5.mouseY);
-  }, [alive,restart, setX,setY]), INTERACTION_BOUNDS);
+  }, [finishTask, ships,score]), INTERACTION_BOUNDS);
   const touchStarted = mousePressed;
-  const mouseDragged = mousePressed;
-  const touchMoved = mouseDragged;
+  // const mouseDragged = mousePressed;
+  // const touchMoved = mouseDragged;
 
-  useEffect(() => {
-    spawnEnemyIntervalRef.current = setInterval(() => {
-      updateEnemies({spawnEnemy: { playerSize }});
-    }, 1000 / ENEMY_SPAWN_RATE);
-    return () => {
-      clearInterval(spawnEnemyIntervalRef.current);
-    }
-  }, [playerSize]);
+  useInterval(useCallback(() => {
+    updateShips({ spawnShip: true });
+  }, []), 1000 / SHIP_SPAWN_RATE);
 
   return (
     <>
-      <Sketch className={`${finished ? "animate-jiggle" : ""}`} { ...{ setup, draw, mousePressed, mouseDragged, touchStarted, touchMoved } } width={`${BOARD_SIZE}`} height={`${BOARD_SIZE}`} />
+      <Sketch className={`${finished ? "animate-ping" : ""}`} { ...{ setup, draw, mousePressed, touchStarted } } width={`${BOARD_SIZE}`} height={`${BOARD_SIZE}`} />
       <div className="w-full flex">
         <p className="my-2 mx-auto text-2xl font-bold">
           {score < SCORE_TO_WIN ? `Score: ${score}/${SCORE_TO_WIN}` : "SUCCESS!!"}

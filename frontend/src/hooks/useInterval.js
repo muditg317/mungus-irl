@@ -5,10 +5,10 @@ const useInterval = (callback, time) => {
   useEffect(() => {
     // const millis = performance.now();
     if (intervalRef.current) {
-      // intervalRef.current = {
+      intervalRef.current = {
       //   millis,
-      //   interval: setInterval(callback, time - (millis - intervalRef.current.millis))
-      // };
+        interval: setInterval(callback, time)
+      };
     } else {
       intervalRef.current = {
         // millis,
