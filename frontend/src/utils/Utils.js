@@ -151,3 +151,7 @@ export function randInRange(min, max, options) {
   const rand = Math.random() * (max - min) + min;
   return integer ? Math.floor(rand) : rand;
 }
+
+export function randOption(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}

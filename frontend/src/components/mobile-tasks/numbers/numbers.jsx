@@ -9,7 +9,7 @@ const Numbers = (props) => {
   const { finish, onExit } = props;
   const [ finished, finishTask ] = useTaskFinish(finish, onExit, 750);
 
-  const [ order, ] = useState(shuffled(numbers));
+  const [ order, ] = useState(() => shuffled(numbers));
   const firstHalf = useMemo(() => order.slice(0,5), [order]);
   const secondHalf = useMemo(() => order.slice(5,10), [order]);
   const [ number, setNumber ] = useState(1);
