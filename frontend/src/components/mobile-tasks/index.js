@@ -20,7 +20,7 @@ const availableMobileTasks = {
   donuts: donutsInfo,
   tracer: tracerInfo,
   goodShipBadShip: goodShipBadShipInfo,
-  // roadCross: roadCrossInfo,
+  roadCross: roadCrossInfo,
 };
 export default availableMobileTasks;
 export { availableMobileTasks };

@@ -50,13 +50,15 @@ const UserTaskDescription = ({ task, errors, deleteTask, updateTask, ...props })
               // <label className="mr-1">ID:</label>
               // <input className="bg-gray-800 rounded-md pl-1 text-base font-semibold" value={`${task.qrID || ''}`} onChange={handleChange('qrID',task,updateTask,7)} size="7" maxLength="7"/>
             }
-            <label className="mr-1">Max completion time (sec): {task.maxTime || 20}</label>
-            <input className="ml-auto" type="range" min="5" max="30" value={task.maxTime || 20} onChange={handleChange('maxTime',task,updateTask,{range:[5,30]})}/>
-            {taskError.maxTime && <p className="text-red-500 text-sm">{taskError.maxTime}</p>}
+            {/*
+              <label className="mr-1">Max completion time (sec): {task.maxTime || 20}</label>
+              <input className="ml-auto" type="range" min="5" max="30" value={task.maxTime || 20} onChange={handleChange('maxTime',task,updateTask,{range:[5,30]})}/>
+              {taskError.maxTime && <p className="text-red-500 text-sm">{taskError.maxTime}</p>}
+            */}
           </div>
           <div className="flex flex-row flex-wrap items-center">
             <label className="mr-1">Task format:</label>
-            <select className="bg-gray-800 rounded-md p-1" type="select" value={task.format || 'short'} onChange={handleChange('format',task,updateTask,{options:['short','common','long']})}>
+            <select className="bg-gray-800 rounded-md p-1 pb-1.5" type="select" value={task.format || 'short'} onChange={handleChange('format',task,updateTask,{options:['short','common','long']})}>
               <option value="common">Common</option>
               <option value="short">Short</option>
               <option value="long">Long</option>
@@ -64,9 +66,11 @@ const UserTaskDescription = ({ task, errors, deleteTask, updateTask, ...props })
             {taskError.format && <p className="text-red-500 text-sm">{taskError.format}</p>}
           </div>
           <div className="flex flex-row flex-wrap items-center">
-            <input className="mr-1" type="checkbox" value={task.canBeNonVisual ? "true" : "false"} checked={task.canBeNonVisual} onChange={handleChange('canBeNonVisual',task,updateTask,{checked:true})} />
-            <label className="">Can be non visual</label>
-            {taskError.canBeNonVisual && <p className="text-red-500 text-sm">{taskError.canBeNonVisual}</p>}
+            {/*
+              <input className="mr-1" type="checkbox" value={task.canBeNonVisual ? "true" : "false"} checked={task.canBeNonVisual} onChange={handleChange('canBeNonVisual',task,updateTask,{checked:true})} />
+              <label className="">Can be non visual</label>
+              {taskError.canBeNonVisual && <p className="text-red-500 text-sm">{taskError.canBeNonVisual}</p>}
+            */}
           </div>
         </div>
       </div>
