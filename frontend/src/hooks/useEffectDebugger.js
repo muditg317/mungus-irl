@@ -23,7 +23,7 @@ const useEffectDebugger = (effectHook, dependencies, dependencyNames = []) => {
     console.log('[use-effect-debugger] ', changedDeps);
   }
 
-  useEffect(effectHook, [...dependencies]);
+  useEffect(effectHook, [...dependencies, effectHook]);
 };
 
 export default useEffectDebugger;

@@ -14,11 +14,11 @@ const MAX_SIZE = 0;
 const MIN_SIZE = 2;
 const HIT_MARGIN = 5;
 
-const MAX_SHIPS = 20;
-const SHIP_SPAWN_RATE = 3;
+const MAX_SHIPS = 25;
+const SHIP_SPAWN_RATE = 4.5;
 const ENEMY_PROBABILITY = 0.4;
-const MIN_SPEED = 0.75;
-const MAX_SPEED = 1.75;
+const MIN_SPEED = 1.5;
+const MAX_SPEED = 2.5;
 
 const BACKGROUND_COLOR = [65, 145, 242];
 // const PLAYER_COLOR = [229, 136, 247];
