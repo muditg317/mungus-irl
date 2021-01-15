@@ -1,7 +1,7 @@
 import React, { useCallback, useReducer, useState } from 'react';
 import Sketch from 'polyfills/react-p5';
 
-import { useTaskFinish, useP5Event, useInterval } from 'hooks';
+import { useTaskFinish, useP5Event, useInterval, useNonResettingTimeout } from 'hooks';
 import { map, randInRange } from 'utils';
 
 // TODO: use buttons to control (or just hold to go forward, release to stop)
@@ -19,8 +19,8 @@ const NUM_ROADS = SCORE_TO_WIN - 1;
 const MAX_ENEMIES = 7;
 const ENEMY_SPAWN_RATE = 2.5;
 // const PROB_CAN_EAT = 0.4;
-const MIN_SPEED = 0.75;
-const MAX_SPEED = 2.75;
+const MIN_SPEED = 1.00;
+const MAX_SPEED = 5.75;
 const MIN_SIZE = 2;
 const MAX_SIZE = 4;
 const CAR_LENGTH_UNIT = 20;
@@ -92,24 +92,33 @@ const drawCar = (p5, car) => {
 
 const drawFrog = (p5, x, y, color = PLAYER_COLOR) => {
   p5.push();
+  p5.translate(x,y);
   p5.noStroke();
   p5.fill(...color);
-  p5.ellipse(x,y, PLAYER_HEIGHT/3, PLAYER_HEIGHT);
+  p5.ellipse(0,0, PLAYER_WIDTH, PLAYER_HEIGHT);
+  p5.ellipse(-PLAYER_WIDTH/3,PLAYER_HEIGHT/2-2,PLAYER_WIDTH,5);
+  p5.ellipse(PLAYER_WIDTH/3,PLAYER_HEIGHT/2-2,PLAYER_WIDTH,5);
+  p5.fill(255);
+  p5.ellipse(0,-PLAYER_HEIGHT/4,PLAYER_WIDTH/2,PLAYER_WIDTH/2);
+  p5.fill(0);
+  p5.ellipse(0,-PLAYER_HEIGHT/4,PLAYER_WIDTH/4,PLAYER_WIDTH/4);
   p5.pop();
 };
 
 const RoadCross = (props) => {
   const { finish, onExit } = props;
-  const [ finished, finishTask ] = useTaskFinish(finish, onExit, 750);
+  const [ finished, finishTask ] = useTaskFinish(finish, onExit, 500);
 
   const [ alive, setAlive ] = useState(true);
   const [ score, setScore ] = useState(0);
+  const [ canMove, setCanMove ] = useState(false);
 
   const [ enemies, updateEnemies ] = useReducer(enemiesReducer, []);
 
   const restart = useCallback((p5) => {
     setAlive(true);
     setScore(0);
+    // setCanMove(false);
     updateEnemies({reset: []});
     p5.loop();
   }, []);
@@ -137,11 +146,6 @@ const RoadCross = (props) => {
 
   const draw = useCallback((p5) => {
     if (finished) {
-      setScore(prev => prev * 1.1);
-      drawBackground(p5);
-      for (let i = 0; i < score; i++) {
-        drawFrog(p5, randInRange(BOARD_WIDTH), randInRange(BOARD_HEIGHT));
-      }
       return;
     }
     updateEnemies({stepAll: true});
@@ -155,18 +159,18 @@ const RoadCross = (props) => {
       drawCar(p5, enemy);
     });
     drawFrog(p5, BOARD_WIDTH/2, (score + 0.5) * LANE_HEIGHT);
-  }, [drawBackground, score,finished, enemies]);
+    if (score === SCORE_TO_WIN) {
+      finishTask();
+    }
+  }, [drawBackground, score,finished,finishTask, enemies]);
 
   const mousePressed = useP5Event(useCallback((p5, event) => {
     if (!alive) {
       restart(p5);
       return;
     }
-    setScore(prev => prev + 1);
-    if (score === SCORE_TO_WIN - 1) {
-      finishTask();
-    }
-  }, [alive,restart, score,finishTask]), INTERACTION_BOUNDS);
+    canMove && setScore(prev => prev + 1);
+  }, [alive,restart,canMove]), INTERACTION_BOUNDS);
   const touchStarted = mousePressed;
   // const mouseDragged = mousePressed;
   // const touchMoved = mouseDragged;
@@ -175,9 +179,13 @@ const RoadCross = (props) => {
     updateEnemies({spawnEnemy: true});
   }, []), 1000 / ENEMY_SPAWN_RATE);
 
+  useNonResettingTimeout(useCallback(() => {
+    setCanMove(true);
+  }, []), 500);
+
   return (
     <>
-      <Sketch className={`${finished ? "animate-spin" : ""}`} { ...{ setup, draw, mousePressed, touchStarted } } width={`${BOARD_WIDTH}`} height={`${BOARD_HEIGHT}`} />
+      <Sketch className={`${finished ? "animate-jiggle" : ""}`} { ...{ setup, draw, mousePressed, touchStarted } } width={`${BOARD_WIDTH}`} height={`${BOARD_HEIGHT}`} />
       <div className="w-full flex">
         <p className="my-2 mx-auto text-2xl font-bold">
           {score < SCORE_TO_WIN ? "" : "SUCCESS!!"}
