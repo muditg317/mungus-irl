@@ -1,32 +1,32 @@
-import React, { useCallback, useReducer, useState } from 'react';
+import React, { useCallback, useEffect, useReducer, useState } from 'react';
 import Sketch from 'polyfills/react-p5';
 
 import { useTaskFinish, useP5Event, useInterval, useNonResettingTimeout } from 'hooks';
 import { map, randInRange } from 'utils';
 
 // TODO: use buttons to control (or just hold to go forward, release to stop)
-const SCORE_TO_WIN = 6;
+const SCORE_TO_WIN = 8;
 
 const BOARD_WIDTH = 250;
 const BOARD_HEIGHT = 250;
 const INTERACTION_MARGIN = 10;
 const INTERACTION_BOUNDS = [-INTERACTION_MARGIN, BOARD_WIDTH+INTERACTION_MARGIN, -INTERACTION_MARGIN, BOARD_HEIGHT+INTERACTION_MARGIN];
 
-const PLAYER_WIDTH = 15;
-const PLAYER_HEIGHT = 30;
+const PLAYER_WIDTH = 10;
+const PLAYER_HEIGHT = 20;
 
 const NUM_ROADS = SCORE_TO_WIN - 1;
+const LANE_HEIGHT = 1 / (NUM_ROADS+2) * BOARD_HEIGHT;
 const MAX_ENEMIES = 7;
-const ENEMY_SPAWN_RATE = 2.5;
+const ENEMY_SPAWN_RATE = 3.5;
 // const PROB_CAN_EAT = 0.4;
-const MIN_SPEED = 1.00;
-const MAX_SPEED = 5.75;
+const MIN_SPEED = 2.00;
+const MAX_SPEED = 7.00;
 const MIN_SIZE = 2;
 const MAX_SIZE = 4;
 const CAR_LENGTH_UNIT = 20;
-const CAR_HEIGHT = 30;
+const CAR_HEIGHT = LANE_HEIGHT - 10;
 
-const LANE_HEIGHT = 1 / (NUM_ROADS+2) * BOARD_HEIGHT;
 
 const GRASS_COLOR = [121, 232, 130];
 const ROAD_COLOR = [90, 91, 102];
@@ -50,8 +50,8 @@ const enemiesReducer = (state, action) => {
       y: (randInRange(1,NUM_ROADS+1, {integer:true}) + 0.5) * LANE_HEIGHT,
       color: [Math.random() * 255, Math.random() * 255, Math.random() * 255]
     };
-    // let speed = map(newEnemy.size, MIN_SIZE, MAX_SIZE, MAX_SPEED, MIN_SPEED) * (1 + (Math.random() * 0.4 - 0.2));
     newEnemy.vx = Math.sign(BOARD_WIDTH/2 - newEnemy.x) * map(newEnemy.size, MIN_SIZE, MAX_SIZE, MAX_SPEED, MIN_SPEED) * (1 + (Math.random() * 0.4 - 0.2));
+    spawnEnemy.speed && (newEnemy.vx = Math.min(MAX_SPEED, newEnemy.vx * spawnEnemy.speed));
     newEnemy.x += newEnemy.size * CAR_LENGTH_UNIT * Math.sign(newEnemy.x - BOARD_WIDTH/2);
     return [...state, newEnemy];
   }
@@ -115,13 +115,28 @@ const RoadCross = (props) => {
 
   const [ enemies, updateEnemies ] = useReducer(enemiesReducer, []);
 
+  const initialSpawn = useCallback(() => {
+    updateEnemies({spawnEnemy: {speed:2}});
+    updateEnemies({spawnEnemy: {speed:2}});
+    updateEnemies({spawnEnemy: {speed:1}});
+    updateEnemies({spawnEnemy: {speed:1}});
+    updateEnemies({spawnEnemy: {speed:0.8}});
+    updateEnemies({spawnEnemy: {speed:0.8}});
+    // updateEnemies({spawnEnemy: {speed:2}});
+    // updateEnemies({spawnEnemy: {speed:3}});
+    // updateEnemies({spawnEnemy: {speed:4}});
+  }, []);
+
+  useEffect(initialSpawn, [initialSpawn]);
+
   const restart = useCallback((p5) => {
     setAlive(true);
     setScore(0);
     // setCanMove(false);
     updateEnemies({reset: []});
+    initialSpawn();
     p5.loop();
-  }, []);
+  }, [initialSpawn]);
 
   const setup = useCallback((p5) => {
     p5.createCanvas(BOARD_WIDTH, BOARD_HEIGHT);
@@ -129,7 +144,7 @@ const RoadCross = (props) => {
   }, []);
 
   const drawBackground = useCallback((p5) => {
-    p5.background(...GRASS_COLOR);
+    p5.background(...(canMove ? GRASS_COLOR : [255,0,0]));
     p5.push();
     p5.noStroke();
     p5.fill(...ROAD_COLOR);
@@ -142,7 +157,7 @@ const RoadCross = (props) => {
     }
     p5.drawingContext.setLineDash([]);
     p5.pop();
-  }, []);
+  }, [canMove]);
 
   const draw = useCallback((p5) => {
     if (finished) {
@@ -175,13 +190,15 @@ const RoadCross = (props) => {
   // const mouseDragged = mousePressed;
   // const touchMoved = mouseDragged;
 
+
+
   useInterval(useCallback(() => {
     updateEnemies({spawnEnemy: true});
   }, []), 1000 / ENEMY_SPAWN_RATE);
 
   useNonResettingTimeout(useCallback(() => {
     setCanMove(true);
-  }, []), 500);
+  }, []), 0);
 
   return (
     <>
