@@ -5,13 +5,14 @@ import Donuts, { donutsInfo } from './donuts';
 import Tracer, { tracerInfo } from './tracer';
 import GoodShipBadShip, { goodShipBadShipInfo } from './goodShipBadShip';
 import RoadCross, { roadCrossInfo } from './roadCross';
+import DanceDanceRevolution, { danceDanceRevolutionInfo } from './danceDanceRevolution';
 
 // TODO: add more mobile tasks
 //          oo maybe just do wiring1, wiring2, wiring3 type thing (silly but eh)
 // TODO: GALAGA
 // TODO: birds and bugs
 // TODO: dance dance revolution - tap buttons at the right times
-//
+// TODO: pong style thing
 
 
 const availableMobileTasks = {
@@ -22,6 +23,7 @@ const availableMobileTasks = {
   tracer: tracerInfo,
   goodShipBadShip: goodShipBadShipInfo,
   roadCross: roadCrossInfo,
+  danceDanceRevolution: danceDanceRevolutionInfo,
 };
 export default availableMobileTasks;
 export { availableMobileTasks };
@@ -34,3 +36,4 @@ export { Donuts, donutsInfo };
 export { Tracer, tracerInfo };
 export { GoodShipBadShip, goodShipBadShipInfo };
 export { RoadCross, roadCrossInfo };
+export { DanceDanceRevolution, danceDanceRevolutionInfo };
