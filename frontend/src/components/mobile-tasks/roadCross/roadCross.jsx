@@ -1,38 +1,38 @@
-import React, { useCallback, useMemo, useReducer, useState } from 'react';
+import React, { useCallback, useReducer, useState } from 'react';
 import Sketch from 'polyfills/react-p5';
 
 import { useTaskFinish, useP5Event, useInterval } from 'hooks';
-import { map } from 'utils';
+import { map, randInRange } from 'utils';
 
 // TODO: use buttons to control (or just hold to go forward, release to stop)
+const SCORE_TO_WIN = 6;
 
-const SCORE_TO_WIN = 7;
-
-const BOARD_SIZE = 250;
+const BOARD_WIDTH = 250;
+const BOARD_HEIGHT = 250;
 const INTERACTION_MARGIN = 10;
-const INTERACTION_BOUNDS = [-INTERACTION_MARGIN, BOARD_SIZE+INTERACTION_MARGIN];
+const INTERACTION_BOUNDS = [-INTERACTION_MARGIN, BOARD_WIDTH+INTERACTION_MARGIN, -INTERACTION_MARGIN, BOARD_HEIGHT+INTERACTION_MARGIN];
 
-const INITIAL_SIZE = 15;
-const SIZE_INCR = 4;
-const MAX_SIZE = 120;
-const MIN_SIZE = 8;
-const MAX_PERC_DIFF = 0.05;
+const PLAYER_WIDTH = 15;
+const PLAYER_HEIGHT = 30;
 
-const MAX_ENEMIES = 15;
+const NUM_ROADS = SCORE_TO_WIN - 1;
+const MAX_ENEMIES = 7;
 const ENEMY_SPAWN_RATE = 2.5;
-const PROB_CAN_EAT = 0.4;
-const MIN_SPEED = 0.25;
-const MAX_SPEED = 1.75;
+// const PROB_CAN_EAT = 0.4;
+const MIN_SPEED = 0.75;
+const MAX_SPEED = 2.75;
+const MIN_SIZE = 2;
+const MAX_SIZE = 4;
+const CAR_LENGTH_UNIT = 20;
+const CAR_HEIGHT = 30;
 
-const BACKGROUND_COLOR = [180, 242, 114];
-const PLAYER_COLOR = [229, 136, 247];
+const LANE_HEIGHT = 1 / (NUM_ROADS+2) * BOARD_HEIGHT;
 
-const ENEMY_ANGLE_BELL = 2;
-const randomEnemySize = (playerSize) => {
-  let min = MIN_SIZE < playerSize - 35 ? playerSize - 35 : MIN_SIZE;
-  let max = MAX_SIZE > playerSize + 70 ? playerSize + 70 : MAX_SIZE;
-  return (Math.random() < PROB_CAN_EAT ? Math.random() * (playerSize - min) : (Math.random() * (max - min) / 2 + Math.random() * (playerSize - min) / 2)) + min;
-};
+const GRASS_COLOR = [121, 232, 130];
+const ROAD_COLOR = [90, 91, 102];
+const LINE_COLOR = [227, 216, 64];
+const PLAYER_COLOR = [119, 168, 123];
+
 
 const enemiesReducer = (state, action) => {
   const { spawnEnemy, updateID, newData, removeKey, reset, stepAll } = action;
@@ -45,44 +45,14 @@ const enemiesReducer = (state, action) => {
     }
     const newEnemy = {
       key: Math.random().toString().substring(2),
-      size: randomEnemySize(spawnEnemy.playerSize),
-      x: Math.random() * BOARD_SIZE,
-      y: Math.random() * BOARD_SIZE,
+      size: randInRange(MIN_SIZE,MAX_SIZE),
+      x: randInRange(0,2,{integer:true}) * BOARD_WIDTH,
+      y: (randInRange(1,NUM_ROADS+1, {integer:true}) + 0.5) * LANE_HEIGHT,
       color: [Math.random() * 255, Math.random() * 255, Math.random() * 255]
     };
-    let speed = map(newEnemy.size, MIN_SIZE, MAX_SIZE, MAX_SPEED, MIN_SPEED) * (1 + (Math.random() * 0.4 - 0.2));
-    let angle = 0;
-    for (let i = 0; i < ENEMY_ANGLE_BELL; i++) {
-      angle += (Math.random() * Math.PI / 2) / ENEMY_ANGLE_BELL;
-    }
-    newEnemy.vx = speed * Math.cos(angle);
-    newEnemy.vy = speed * Math.sin(angle);
-    if (Math.random() < 0.5) {
-      if (Math.random() < 0.5) {
-        newEnemy.x = -newEnemy.size/2;
-      } else {
-        newEnemy.x = BOARD_SIZE + newEnemy.size/2;
-        newEnemy.vx *= -1;
-      }
-      if (Math.sign(BOARD_SIZE/2 - newEnemy.y) === Math.sign(newEnemy.vy) && Math.random() < 0.25) {
-        newEnemy.vy *= -1;
-      }
-    } else {
-      if (Math.random() < 0.5) {
-        newEnemy.y = -newEnemy.size/2;
-      } else {
-        newEnemy.y = BOARD_SIZE + newEnemy.size/2;
-        newEnemy.vy *= -1;
-      }
-      if (Math.sign(BOARD_SIZE/2 - newEnemy.x) === Math.sign(newEnemy.vx) && Math.random() < 0.25) {
-        newEnemy.vx *= -1;
-      }
-    }
-    const angleToCenter = Math.atan2(BOARD_SIZE / 2 - newEnemy.y, BOARD_SIZE/2 - newEnemy.x);
-    const currAngle = Math.atan2(newEnemy.vy, newEnemy.vx);
-    const newAngle = currAngle * 0.4 + angleToCenter * 0.6;
-    newEnemy.vx = speed * Math.cos(newAngle);
-    newEnemy.vy = speed * Math.sin(newAngle);
+    // let speed = map(newEnemy.size, MIN_SIZE, MAX_SIZE, MAX_SPEED, MIN_SPEED) * (1 + (Math.random() * 0.4 - 0.2));
+    newEnemy.vx = Math.sign(BOARD_WIDTH/2 - newEnemy.x) * map(newEnemy.size, MIN_SIZE, MAX_SIZE, MAX_SPEED, MIN_SPEED) * (1 + (Math.random() * 0.4 - 0.2));
+    newEnemy.x += newEnemy.size * CAR_LENGTH_UNIT * Math.sign(newEnemy.x - BOARD_WIDTH/2);
     return [...state, newEnemy];
   }
   if (updateID) {
@@ -94,9 +64,7 @@ const enemiesReducer = (state, action) => {
   if (stepAll) {
     return state.filter(enemy => {
       enemy.x += enemy.vx;
-      enemy.y += enemy.vy;
-      if (enemy.x < -enemy.size/2 || enemy.x > (BOARD_SIZE + enemy.size/2)
-          || enemy.y < -enemy.size/2 || enemy.y > (BOARD_SIZE + enemy.size/2)) {
+      if (enemy.x < -enemy.size*CAR_LENGTH_UNIT || enemy.x > (BOARD_WIDTH + enemy.size*CAR_LENGTH_UNIT)) {
         return false;
       }
       return true;
@@ -106,22 +74,36 @@ const enemiesReducer = (state, action) => {
   return state;
 };
 
+const drawCar = (p5, car) => {
+  p5.push();
+  p5.translate(car.x, car.y);
+  p5.noStroke();
+  p5.rectMode(p5.CENTER);
+  const width = car.size * CAR_LENGTH_UNIT;
+  p5.fill(0);
+  p5.rect(-width*1/3,-CAR_HEIGHT/2,10,5);
+  p5.rect(width*1/3,-CAR_HEIGHT/2,10,5);
+  p5.rect(-width*1/3,CAR_HEIGHT/2,10,5);
+  p5.rect(width*1/3,CAR_HEIGHT/2,10,5);
+  p5.fill(...car.color);
+  p5.rect(0,0,width,CAR_HEIGHT);
+  p5.pop();
+};
 
-const Polkadot = (props) => {
+const drawFrog = (p5, x, y, color = PLAYER_COLOR) => {
+  p5.push();
+  p5.noStroke();
+  p5.fill(...color);
+  p5.ellipse(x,y, PLAYER_HEIGHT/3, PLAYER_HEIGHT);
+  p5.pop();
+};
+
+const RoadCross = (props) => {
   const { finish, onExit } = props;
-  const [ finished, finishTask ] = useTaskFinish(finish, onExit, 500);
+  const [ finished, finishTask ] = useTaskFinish(finish, onExit, 750);
 
   const [ alive, setAlive ] = useState(true);
   const [ score, setScore ] = useState(0);
-  const playerSize = useMemo(() => INITIAL_SIZE + score*SIZE_INCR, [score]);
-  const [ x, _setX ] = useState(BOARD_SIZE / 2);
-  const [ y, _setY ] = useState(BOARD_SIZE / 2);
-  const setX = useCallback((newX) => {
-    finished ? _setX(newX) : _setX(Math.min(Math.max(newX, playerSize), BOARD_SIZE - playerSize));
-  }, [finished, playerSize]);
-  const setY = useCallback((newY) => {
-    finished ? _setY(newY) : _setY(Math.min(Math.max(newY, playerSize), BOARD_SIZE - playerSize));
-  }, [finished, playerSize]);
 
   const [ enemies, updateEnemies ] = useReducer(enemiesReducer, []);
 
@@ -133,81 +115,76 @@ const Polkadot = (props) => {
   }, []);
 
   const setup = useCallback((p5) => {
-    p5.createCanvas(BOARD_SIZE, BOARD_SIZE);
+    p5.createCanvas(BOARD_WIDTH, BOARD_HEIGHT);
     p5.noStroke();
-    p5.background(...BACKGROUND_COLOR);
+  }, []);
+
+  const drawBackground = useCallback((p5) => {
+    p5.background(...GRASS_COLOR);
+    p5.push();
+    p5.noStroke();
+    p5.fill(...ROAD_COLOR);
+    p5.rectMode(p5.CENTER);
+    p5.rect(BOARD_WIDTH/2, BOARD_HEIGHT/2, BOARD_WIDTH, NUM_ROADS/(NUM_ROADS+2) * BOARD_HEIGHT);
+    p5.stroke(...LINE_COLOR);
+    p5.drawingContext.setLineDash([20,10]);
+    for (let i = 2; i <= NUM_ROADS; i++) {
+      p5.line(0,i*LANE_HEIGHT,BOARD_WIDTH,i*LANE_HEIGHT);
+    }
+    p5.drawingContext.setLineDash([]);
+    p5.pop();
   }, []);
 
   const draw = useCallback((p5) => {
     if (finished) {
-      setScore(prev => prev * 1.2);
-      p5.background(...BACKGROUND_COLOR);
-      enemies.forEach(enemy => {
-        p5.fill(...enemy.color);
-        p5.circle(enemy.x,enemy.y, enemy.size);
-      });
-      p5.fill(...PLAYER_COLOR);
-      p5.circle(x,y, playerSize);
-
-      p5.stroke(0);
-      p5.textAlign(p5.CENTER, p5.CENTER);
-      p5.text("WIN", x,y);
-      p5.noStroke();
+      setScore(prev => prev * 1.1);
+      drawBackground(p5);
+      for (let i = 0; i < score; i++) {
+        drawFrog(p5, randInRange(BOARD_WIDTH), randInRange(BOARD_HEIGHT));
+      }
       return;
     }
     updateEnemies({stepAll: true});
-    const collided = enemies.find(enemy => Math.hypot(enemy.x - x,enemy.y - y) < ((enemy.size + playerSize) / 2));
+    const collided = enemies.find(enemy => enemy.y === (score + 0.5) * LANE_HEIGHT && Math.abs(enemy.x - BOARD_WIDTH/2) < (enemy.size * CAR_LENGTH_UNIT / 2 + PLAYER_WIDTH/2));
     if (collided) {
-      if (collided.size / playerSize <= (1 + MAX_PERC_DIFF)) {
-        setScore(prev => prev + 1);
-        updateEnemies({removeKey: collided.key});
-        if (score === SCORE_TO_WIN - 1) {
-          finishTask();
-        }
-      } else {
-        setAlive(false);
-        p5.noLoop();
-      }
+      setAlive(false);
+      p5.noLoop();
     }
-    p5.background(...BACKGROUND_COLOR);
+    drawBackground(p5);
     enemies.forEach(enemy => {
-      p5.fill(...enemy.color);
-      p5.circle(enemy.x,enemy.y, enemy.size);
+      drawCar(p5, enemy);
     });
-    p5.fill(...PLAYER_COLOR);
-    p5.circle(x,y, playerSize);
-
-    p5.stroke(0);
-    p5.textAlign(p5.CENTER, p5.CENTER);
-    p5.text(score, x,y);
-    p5.noStroke();
-  }, [score,finished,finishTask, enemies, x,y,playerSize]);
+    drawFrog(p5, BOARD_WIDTH/2, (score + 0.5) * LANE_HEIGHT);
+  }, [drawBackground, score,finished, enemies]);
 
   const mousePressed = useP5Event(useCallback((p5, event) => {
     if (!alive) {
       restart(p5);
+      return;
     }
-    setX(p5.mouseX);
-    setY(p5.mouseY);
-  }, [alive,restart, setX,setY]), INTERACTION_BOUNDS);
+    setScore(prev => prev + 1);
+    if (score === SCORE_TO_WIN - 1) {
+      finishTask();
+    }
+  }, [alive,restart, score,finishTask]), INTERACTION_BOUNDS);
   const touchStarted = mousePressed;
-  const mouseDragged = mousePressed;
-  const touchMoved = mouseDragged;
+  // const mouseDragged = mousePressed;
+  // const touchMoved = mouseDragged;
 
   useInterval(useCallback(() => {
-    updateEnemies({spawnEnemy: { playerSize }});
-  }, [playerSize]), 1000 / ENEMY_SPAWN_RATE);
+    updateEnemies({spawnEnemy: true});
+  }, []), 1000 / ENEMY_SPAWN_RATE);
 
   return (
     <>
-      <Sketch className={`${finished ? "animate-jiggle" : ""}`} { ...{ setup, draw, mousePressed, mouseDragged, touchStarted, touchMoved } } width={`${BOARD_SIZE}`} height={`${BOARD_SIZE}`} />
+      <Sketch className={`${finished ? "animate-spin" : ""}`} { ...{ setup, draw, mousePressed, touchStarted } } width={`${BOARD_WIDTH}`} height={`${BOARD_HEIGHT}`} />
       <div className="w-full flex">
         <p className="my-2 mx-auto text-2xl font-bold">
-          {score < SCORE_TO_WIN ? `Score: ${score}/${SCORE_TO_WIN}` : "SUCCESS!!"}
+          {score < SCORE_TO_WIN ? "" : "SUCCESS!!"}
         </p>
       </div>
     </>
   );
 };
 
-export default Polkadot;
+export default RoadCross;
