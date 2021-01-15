@@ -7,7 +7,7 @@ const donutsInfo = {
   qrID: "ferjnfl",
   maxTime: 15,
   physicalDeviceID: '',
-  format: 'short',
+  format: 'common',
   predecessorTasks: [],
   successorTasks: [],
   canBeNonVisual: true,
