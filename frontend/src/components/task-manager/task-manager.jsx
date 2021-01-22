@@ -142,30 +142,14 @@ const TaskManager = () => {
 
   useEffect(() => {
     const beforeUnload = (event) => {
-      if (anyUnsaved) {
-        // if (window.confirm(`Are you sure you exit without saving your tasks?`)) {
-        //   console.log("ignore warning!");
-        // } else {
-        // console.log('save before leaving');
-        saveTasks();
-        // event.preventDefault();
-        // event.returnValue = 'Are you sure you exit without saving your tasks?';
-        // return 'Are you sure you exit without saving your tasks?';
-        // }
-      }
-      // console.log('leave!');
-    };
-    window.addEventListener('beforeunload', beforeUnload);
-    window.addEventListener('locationchange', beforeUnload);
-    // const unblock = history.block(tx => {
-    //   console.log(tx);
-    //   const url = tx.pathname;
-    //
-    // });
-    return () => {
-      window.removeEventListener('beforeunload', beforeUnload);
       window.removeEventListener('locationchange', beforeUnload);
-      // unblock();
+      if (anyUnsaved) {
+        saveTasks();
+      }
+    };
+    window.addEventListener('locationchange', beforeUnload);
+    return () => {
+      window.removeEventListener('locationchange', beforeUnload);
     };
   }, [anyUnsaved, saveTasks]);
 

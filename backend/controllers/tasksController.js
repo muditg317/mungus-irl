@@ -210,6 +210,7 @@ module.exports = {
 
       // console.log("presaving", user, "\npresaved tasks:", user.tasks);
       const savedUser = await user.save({wtimeout: MONGOOSE_WRITE_TIMEOUT});
+      // const savedUser = await User.findOneAndUpdate({id: ownerID}, {tasks: user.tasks}, {runValidators: true, maxTimeMS: MONGOOSE_WRITE_TIMEOUT});
       // console.log("NEW TASKS UPDATED", savedUser, "=========New tasks updated ^^=====");
 
       const userTasksPayload = newUserTasks.map(savedTask => taskPayload(savedTask));

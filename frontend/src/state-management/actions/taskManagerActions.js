@@ -64,11 +64,11 @@ export const updateTaskManagerDataAction = dispatch => (taskData, successCallbac
       successCallback();
     })
     .catch(err => {
-      console.log(err);
+      console.error(err);
       dispatch({
         type: SET_TASK_MANAGER_ERROR,
         payload: err.response.data
       });
       console.log(err.response.data);
-    });
+    }).catch(err => console.error(err));
 };
