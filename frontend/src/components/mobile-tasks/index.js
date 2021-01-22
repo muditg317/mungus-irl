@@ -5,7 +5,7 @@ import Donuts, { donutsInfo } from './donuts';
 import Tracer, { tracerInfo } from './tracer';
 import GoodShipBadShip, { goodShipBadShipInfo } from './goodShipBadShip';
 import RoadCross, { roadCrossInfo } from './roadCross';
-import DanceDanceRevolution, { danceDanceRevolutionInfo } from './danceDanceRevolution';
+import TapTapRevolution, { tapTapRevolutionInfo } from './tapTapRevolution';
 
 // TODO: add more mobile tasks
 //          oo maybe just do wiring1, wiring2, wiring3 type thing (silly but eh)
@@ -23,7 +23,7 @@ const availableMobileTasks = {
   tracer: tracerInfo,
   goodShipBadShip: goodShipBadShipInfo,
   roadCross: roadCrossInfo,
-  danceDanceRevolution: danceDanceRevolutionInfo,
+  tapTapRevolution: tapTapRevolutionInfo,
 };
 export default availableMobileTasks;
 export { availableMobileTasks };
@@ -36,4 +36,4 @@ export { Donuts, donutsInfo };
 export { Tracer, tracerInfo };
 export { GoodShipBadShip, goodShipBadShipInfo };
 export { RoadCross, roadCrossInfo };
-export { DanceDanceRevolution, danceDanceRevolutionInfo };
+export { TapTapRevolution, tapTapRevolutionInfo };
