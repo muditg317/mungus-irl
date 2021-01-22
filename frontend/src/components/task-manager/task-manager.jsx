@@ -203,7 +203,7 @@ const TaskManager = () => {
             <p className="hidden md:block mr-2">Add</p><FontAwesomeIcon icon="plus-circle" size='lg' />
           </button>
         </div>
-        <div className="w-full bg-gray-700 p-2">
+        <div className="w-full md:w-auto md:container mx-auto p-2 bg-gray-700">
           <h3 className="w-full bg-gray-700 text-center mb-3 text-lg">Mobile Tasks</h3>
           <div className="w-full bg-gray-700 flex flex-col items-center divide-y divide-white">
             { state.taskManager.mobileTaskInfo.map(taskDatum => {

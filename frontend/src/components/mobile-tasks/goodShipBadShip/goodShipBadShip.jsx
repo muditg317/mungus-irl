@@ -279,7 +279,7 @@ const GoodShipBadShip = (props) => {
       updateShips({ removeKey: hitShip.key });
     });
     scoreChange && setScore(curr => Math.max(curr + scoreChange, 0));
-    if (score + scoreChange === SCORE_TO_WIN) {
+    if (score + scoreChange >= SCORE_TO_WIN) {
       finishTask();
     }
   }, [finishTask, ships,score]), INTERACTION_BOUNDS);
