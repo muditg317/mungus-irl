@@ -27,7 +27,7 @@ const fasSignal = ['fas', 'signal'];
 
 const myPlayerReducer = (state = {}, action) => {
   const { field, newValue, reset, globalData, task } = action;
-  if (reset) {
+  if (reset || 'reset' in action) {
     return reset;
   }
   if (globalData) {
