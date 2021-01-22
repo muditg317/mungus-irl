@@ -67,13 +67,13 @@ export default function WaitingRoom(props) {
             const task = tasksStatus[taskname];
             return <div key={taskname} className={`w-full flex flex-row items-center mb-1 last:mb-0`}>
               <div className="w-1/2">
-                <p className="text-right align-middle">
-                  {`${taskname} -`}
+                <p className="text-right align-middle mr-1">
+                  {`${taskname}`}
                 </p>
               </div>
               <div className="w-1/2">
                 <div className="ml-1">
-                  <p>{`${task.online ? 'Online!' : 'Not connected :('}`}</p>
+                  <p>{`- ${task.online ? 'Online!' : 'Not connected :('}`}</p>
                 </div>
               </div>
             </div>

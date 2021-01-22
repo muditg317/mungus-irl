@@ -89,13 +89,13 @@ export default function ImposterScreen(props) {
             const task = tasks[taskname];
             return <div key={taskname} className={`w-full flex flex-row items-center mb-1 last:mb-0 text-white`}>
               <div className="w-1/2">
-                <p className="text-right align-middle">
-                  {`${taskname} (${task.format}) -`}
+                <p className="text-right align-middle mr-1">
+                  {`${task.longName} (${task.format})`}
                 </p>
               </div>
               <div className="w-1/2">
-                <div className="ml-1">
-                  <p>{`${Math.random() < 0.1 ? "Complete!" : "Not completed"}`}</p>
+                <div className="">
+                  <p>{`- ${Math.random() < 0.1 ? "Complete!" : "Not completed"}`}</p>
                 </div>
               </div>
             </div>

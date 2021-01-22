@@ -156,7 +156,7 @@ module.exports = class Game {
       this.tasks[key].taskname,
       {
         ...value,
-        ...fieldsFromObject(this.tasks[key], ['taskname','format'])
+        ...fieldsFromObject(this.tasks[key], ['taskname','longName','format'])
       }
     ]));
   }
@@ -993,25 +993,25 @@ module.exports = class Game {
       }
       if (scannerName in this.crewmates) {
         if (!(qrData in player.tasks)) {
-          player.socket && player.socket.emit("badQrScan", { issue: `You were not assigned the ${task.taskname} task!` });
+          player.socket && player.socket.emit("badQrScan", { issue: `You were not assigned the ${task.longName} task!` });
           return false;
         }
         if (taskState.completed) {
-          player.socket && player.socket.emit("badQrScan", { issue: `You've already completed the ${task.taskname} task! Move on!` });
+          player.socket && player.socket.emit("badQrScan", { issue: `You've already completed the ${task.longName} task! Move on!` });
           return false;
         }
         const alreadyActiveTasks = Object.keys(player.tasks).filter(qrID => player.tasks[qrID].active);
         if (alreadyActiveTasks.length) {
-          player.socket && player.socket.emit("badQrScan", { issue: `You're already doing the ${alreadyActiveTasks.map(qrID => this.tasks[qrID].taskname)} task${alreadyActiveTasks.length > 1 ? "s" : ""}! Finish that first!` });
+          player.socket && player.socket.emit("badQrScan", { issue: `You're already doing the ${alreadyActiveTasks.map(qrID => this.tasks[qrID].longName)} task${alreadyActiveTasks.length > 1 ? "s" : ""}! Finish that first!` });
           return false;
         }
         if (task.physicalDeviceID) {
           if (!task.online) {
-            player.socket && player.socket.emit("badQrScan", { issue: `The ${task.taskname} task is offline! You gotta fix it bruh` });
+            player.socket && player.socket.emit("badQrScan", { issue: `The ${task.longName} task is offline! You gotta fix it bruh` });
             return false;
           }
           if (task.inUse) {
-            player.socket && player.socket.emit("badQrScan", { issue: `The ${task.taskname} task is already being done! You gotta wait...` });
+            player.socket && player.socket.emit("badQrScan", { issue: `The ${task.longName} task is already being done! You gotta wait...` });
             return false;
           }
           const ret = this.startTask(player, task);

@@ -45,13 +45,13 @@ export default function GhostScreen(props) {
             const task = tasks[taskname];
             return <div key={taskname} className={`w-full flex flex-row items-center mb-1 last:mb-0 ${task.completed ? 'text-green-300' : (task.active ? 'text-yellow-300' : 'text-white')}`}>
               <div className="w-1/2">
-                <p className="text-right align-middle">
-                  {`${taskname} (${task.format}) -`}
+                <p className="text-right align-middle mr-1">
+                  {`${task.longName} (${task.format})`}
                 </p>
               </div>
               <div className="w-1/2">
-                <div className="ml-1">
-                  <p>{`${task.completed ? 'Completed!' : 'Not completed'}`}</p>
+                <div className="">
+                  <p>{`- ${task.completed ? 'Completed!' : 'Not completed'}`}</p>
                 </div>
               </div>
             </div>
