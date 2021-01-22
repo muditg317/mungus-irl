@@ -145,7 +145,7 @@ export function map(value, min, max, newMin, newMax) {
 }
 
 export function randInRange(min, max, options) {
-  (options === undefined) && (max === undefined || typeof max === "number"? (options = {}) : ((options = max) && (max = min)));
+  (options === undefined) && (max === undefined || typeof max === "number"? (options = {}) : ((options = max) && (max = undefined)));
   (max === undefined) && (max = min) && (min = 0);
   const { integer = false } = options;
   const rand = Math.random() * (max - min) + min;
