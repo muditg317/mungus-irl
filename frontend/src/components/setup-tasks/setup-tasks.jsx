@@ -83,7 +83,7 @@ const ViewQrCodes = () => {
           // console.log(task.taskname, qrCodes[index]);
           const mobile = !task.physicalDeviceID;
           return <div key={task.qrID} className="flex flex-col items-center justify-start py-2 print:m-0 w-full md:w-fit print:w-1/2 print:h-124 print:max-w-1/2 print:max-h-124">
-            <h2 className="text-3xl font-extrabold">{`${task.longName || task.taskname}${mobile ? ` (mobile)` : ''}`}</h2>
+            <h2 className="text-3xl font-extrabold text-center">{`${task.longName || task.taskname}${mobile ? ` (mobile)` : ''}`}</h2>
             <div className="w-full md:w-fit flex flex-col items-center">
               <div className="block print:hidden flex flex-col pl-2">
                 {!mobile &&
