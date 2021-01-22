@@ -1,11 +1,11 @@
 import Polkadot from './polkadot';
 
 const polkadotInfo = {
-  id: "54kjb867kj5blk353l",
+  id: "600a85562563a0302bc5cf55",
   taskname: "polkadot",
   longName: "Polkadot Escape!",
-  qrID: "ferjnfl",
-  maxTime: 15,
+  qrID: "8JYWXTU",
+  maxTime: 20,
   physicalDeviceID: '',
   format: 'long',
   predecessorTasks: [],

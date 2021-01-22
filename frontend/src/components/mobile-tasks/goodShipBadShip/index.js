@@ -1,11 +1,11 @@
 import GoodShipBadShip from './goodShipBadShip';
 
 const goodShipBadShipInfo = {
-  id: "785h6j463578l764l",
+  id: "600a84fb2563a0302bc5cf53",
   taskname: "goodShipBadShip",
   longName: "Good Ship, Bad Ship",
-  qrID: "ferjnfl",
-  maxTime: 15,
+  qrID: "ntOj7iQ",
+  maxTime: 20,
   physicalDeviceID: '',
   format: 'long',
   predecessorTasks: [],

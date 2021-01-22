@@ -1,11 +1,11 @@
 import RoadCross from './roadCross';
 
 const roadCrossInfo = {
-  id: "45k74n36j23573k6",
+  id: "600a85802563a0302bc5cf56",
   taskname: "roadCross",
   longName: "Cross the Road!",
-  qrID: "ferjnfl",
-  maxTime: 15,
+  qrID: "OBzPYGO",
+  maxTime: 20,
   physicalDeviceID: '',
   format: 'long',
   predecessorTasks: [],

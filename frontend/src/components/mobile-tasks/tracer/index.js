@@ -1,11 +1,11 @@
 import Tracer from './tracer';
 
 const tracerInfo = {
-  id: "786j5h4wlkj5h778lk",
+  id: "600a85c42563a0302bc5cf58",
   taskname: "tracer",
   longName: "Tracer",
-  qrID: "ferjnfl",
-  maxTime: 15,
+  qrID: "cKxemNJ",
+  maxTime: 20,
   physicalDeviceID: '',
   format: 'short',
   predecessorTasks: [],

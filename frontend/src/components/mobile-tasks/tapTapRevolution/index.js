@@ -1,11 +1,11 @@
 import TapTapRevolution from './tapTapRevolution';
 
 const tapTapRevolutionInfo = {
-  id: "5768bl645jb2877k5jl",
+  id: "600a85a22563a0302bc5cf57",
   taskname: "tapTapRevolution",
   longName: "Tap Tap Revolution",
-  qrID: "45l34kb",
-  maxTime: 15,
+  qrID: "Rpli5Yk",
+  maxTime: 20,
   physicalDeviceID: '',
   format: 'short',
   predecessorTasks: [],

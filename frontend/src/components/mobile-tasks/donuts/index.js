@@ -1,11 +1,11 @@
 import Donuts from './donuts';
 
 const donutsInfo = {
-  id: "987j65kl4j36b87",
+  id: "600a82ae2563a0302bc5cf52",
   taskname: "donuts",
   longName: "Donut Catcher",
-  qrID: "ferjnfl",
-  maxTime: 15,
+  qrID: "xZ6g79O",
+  maxTime: 20,
   physicalDeviceID: '',
   format: 'common',
   predecessorTasks: [],
