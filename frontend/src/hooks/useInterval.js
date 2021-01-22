@@ -3,15 +3,12 @@ import { useEffect, useRef } from 'react';
 const useInterval = (callback, time) => {
   const intervalRef = useRef();
   useEffect(() => {
-    // const millis = performance.now();
     if (intervalRef.current) {
       intervalRef.current = {
-      //   millis,
         interval: setInterval(callback, time)
       };
     } else {
       intervalRef.current = {
-        // millis,
         interval: setInterval(callback, time)
       };
     }

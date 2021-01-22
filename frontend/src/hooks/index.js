@@ -6,6 +6,7 @@ import useTaskFinish from './useTaskFinish';
 import useP5Event from './useP5Event';
 import useNonResettingTimeout from './useNonResettingTimeout';
 import useInterval from './useInterval';
+import useRandomInterval from './useRandomInterval';
 
 export { usePrevious };
 export { useForceUpdate };
@@ -15,3 +16,4 @@ export { useTaskFinish };
 export { useP5Event };
 export { useNonResettingTimeout };
 export { useInterval };
+export { useRandomInterval };
