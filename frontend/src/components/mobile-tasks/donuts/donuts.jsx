@@ -160,7 +160,7 @@ const Donuts = (props) => {
       return;
     }
     update();
-    donuts.filter(donut => !donut.caught).map(drawDonut.bind(null, p5));
+    donuts.filter(donut => !donut.caught).forEach(drawDonut.bind(null, p5));
     drawPlayer(p5);
   }, [finished, donuts, update, drawDonut, drawPlayer]);
 
