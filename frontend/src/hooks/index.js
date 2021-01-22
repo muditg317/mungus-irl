@@ -7,6 +7,7 @@ import useP5Event from './useP5Event';
 import useNonResettingTimeout from './useNonResettingTimeout';
 import useInterval from './useInterval';
 import useRandomInterval from './useRandomInterval';
+import useScreenTime from './useScreenTime';
 
 export { usePrevious };
 export { useForceUpdate };
@@ -17,3 +18,4 @@ export { useP5Event };
 export { useNonResettingTimeout };
 export { useInterval };
 export { useRandomInterval };
+export { useScreenTime };
