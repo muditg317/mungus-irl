@@ -8,7 +8,7 @@ export default function AppFooter() {
           <p className="text-gray-500 text-center block sm:hidden">Created by Mudit Gupta.</p>
           <p className="text-gray-500 text-center hidden sm:block md:hidden">Created by Mudit Gupta for him and his friends to have fun together.</p>
           <p className="text-gray-500 text-center hidden md:block lg:hidden">Created with the MERN stack by Mudit Gupta for him and his friends to have fun playing mungus together.</p>
-          <p className="text-gray-500 text-center hidden lg:block">Created with the MERN stack by Mudit Gupta for him and his friends to have fun playing mungus together. Updated Nov 27, 2020.</p>
+          <p className="text-gray-500 text-center hidden lg:block">Created with the MERN stack by Mudit Gupta for him and his friends to have fun playing mungus together. Updated Jan 27, 2021.</p>
         </div>
       </footer>
     );

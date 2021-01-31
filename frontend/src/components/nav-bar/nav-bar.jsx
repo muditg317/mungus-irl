@@ -28,7 +28,7 @@ export default function NavBar({ onAuthButtonPress }) {
   return (
     <nav ref={navBarRef} className="flex items-center justify-between flex-wrap bg-black p-3 z-50">
       <Link to="/" className="flex items-center flex-shrink-0 text-white hover:text-red-700 mr-6">
-        <img src={logo} className="fill-current h-12 mr-2" alt="Emerging Leaders logo" />
+        <img src={logo} className="fill-current h-12 mr-2" alt="Mungus logo" />
         <span className="font-semibold text-xl tracking-tight">Mungus IRL</span>
       </Link>
       <div className="block md:hidden">
